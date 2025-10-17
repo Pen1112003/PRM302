@@ -1,0 +1,17 @@
+<!-- res/layout/item_custom.xml -->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="45dp"
+    android:layout_height="30dp"
+    android:layout_margin="4dp"
+    android:background="@drawable/seat_border">
+
+    <TextView
+        android:id="@+id/itemText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="A01"
+        android:textColor="#000000"
+        android:textStyle="bold"
+        android:textSize="16sp" />
+</RelativeLayout>

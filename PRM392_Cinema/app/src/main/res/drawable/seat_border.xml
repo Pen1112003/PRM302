@@ -1,0 +1,8 @@
+<!-- res/drawable/custom_rectangle.xml -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FFDDFF" /> <!-- Màu nền, có thể tùy chỉnh -->
+    <stroke
+        android:width="6dp"
+        android:color="#FF00FF" /> <!-- Màu viền, có thể tùy chỉnh -->
+    <corners android:radius="4dp" /> <!-- Góc bo, có thể thay đổi -->
+</shape>

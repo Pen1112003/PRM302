@@ -1,0 +1,49 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/border_bg"
+    android:layout_marginBottom="12dp"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/tvMovieName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:text="Tên phim"
+        android:textSize="19sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/tvShowTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="19sp"
+        android:text="Giờ chiếu" />
+
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/tvRoomName"
+        android:layout_width="wrap_content"
+        android:textSize="19sp"
+        android:layout_height="wrap_content"
+        android:text="Tên phòng" />
+
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/tvDuration"
+        android:textSize="19sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Thời lượng" />
+
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/tvStatus"
+        android:textSize="19sp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Tình trạng" />
+</LinearLayout>

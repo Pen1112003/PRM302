@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">PRM392_Cinema</string>
+    <string name="appID">2553</string>
+    <string name="select_genre">Chọn thể loại</string>
+    <string name="select_language">Chọn ngôn ngữ</string>
+</resources>
