@@ -55,8 +55,4 @@ dependencies {
     implementation(libs.exoplayer)
     implementation(libs.picasso)
 
-    // ⚠️ SDK ZaloPay thường không có trên Maven, bạn cần dùng file .aar
-    // Nếu bạn tải được file .aar (vd: zalopay-release.aar), KHÔNG cần dòng dưới
-    // Nếu ZaloPay đã cung cấp repository Maven riêng thì dùng dòng dưới thay thế
-    // implementation("vn.zalopay.sdk:zalopay-sdk:latest.release")
 }
