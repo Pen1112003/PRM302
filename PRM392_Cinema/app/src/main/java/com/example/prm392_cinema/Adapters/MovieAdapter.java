@@ -44,8 +44,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         holder.titleTextView.setText(movie.getTitle());
         holder.ratingTextView.setText(String.valueOf(movie.getRating()));
         holder.genreTextView.setText(movie.getGenre());
-        holder.posterImageView.setImageResource(R.drawable.conan_movie);
-        Picasso.get().load(movie.getPosterUrl()).into(holder.posterImageView);
+        Picasso.get().load(movie.getPoster()).placeholder(R.drawable.conan_movie).into(holder.posterImageView);
 
         // Sử dụng Glide để tải ảnh poster từ URL
 //        Glide.with(context)

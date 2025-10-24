@@ -44,12 +44,10 @@ public interface MovieService {
         public String status;
         public String bannerImage;
         public List<Integer> genreIds;
-
-        @SerializedName("trailer")
-        public String linkTrailer;
+        public String trailer;
 
         @SerializedName("poster")
-        public String posterUrl;
+        public String poster;
     }
 
     @GET("/api/showtimes")
