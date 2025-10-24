@@ -1,36 +1,54 @@
 package com.example.prm392_cinema.Services;
 
+import com.example.prm392_cinema.Models.Genre;
 import com.example.prm392_cinema.Models.Movie;
 import com.example.prm392_cinema.Models.Showtime;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
-
 import retrofit2.http.Path;
 
 public interface MovieService {
-    @GET("/api/movies")
-    Call<List<Movie>> getMovies(
-            @Query("genre") String genre,
-            @Query("language") String language
+
+    @GET("/api/Movie/AllMovie")
+    Call<List<Movie>> getAllMovies();
+
+    @GET("/api/Movie/FilterMovies")
+    Call<List<Movie>> getFilteredMovies(
+            @Query("status") String status,
+            @Query("genreId") Integer genreId,
+            @Query("theaterId") Integer theaterId,
+            @Query("date") String date
     );
 
-    @GET("/api/movies/{id}")
+    @GET("/api/Genre/GetAllGenres")
+    Call<List<Genre>> getAllGenres();
+
+    @GET("/api/Movie/MovieById/{id}")
     Call<MovieDto> getMovieDetail(@Path("id") int id);
 
+    // Updated DTO to match the API response
     public class MovieDto {
         public int movieId;
         public String title;
         public String description;
+        public String director;
+        public String cast;
         public String releaseDate;
         public int duration;
-        public float rating;
-        public String genre;
         public String language;
+        public String status;
+        public String bannerImage;
+        public List<Integer> genreIds;
+
+        @SerializedName("trailer")
         public String linkTrailer;
+
+        @SerializedName("poster")
         public String posterUrl;
     }
 
