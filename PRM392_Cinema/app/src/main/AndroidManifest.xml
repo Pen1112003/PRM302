@@ -60,4 +60,15 @@
         </activity>
     </application>
 
+    <queries>
+        <!-- Cho phép truy vấn các ứng dụng có thể mở link web -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Cho phép truy vấn ứng dụng YouTube -->
+        <package android:name="com.google.android.youtube" />
+    </queries>
+
 </manifest>

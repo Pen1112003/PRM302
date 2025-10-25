@@ -1,18 +1,17 @@
 package com.example.prm392_cinema;
 
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,9 +22,6 @@ import com.example.prm392_cinema.Services.MovieService;
 import com.example.prm392_cinema.DateUtils.DateGroup;
 import com.example.prm392_cinema.Stores.AuthStore;
 import com.example.prm392_cinema.Stores.HallScreenStore;
-import com.google.android.exoplayer2.ExoPlayer;
-import com.google.android.exoplayer2.MediaItem;
-import com.google.android.exoplayer2.ui.PlayerControlView;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -37,7 +33,6 @@ import retrofit2.Response;
 
 public class MovieDetailActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
-    private ExoPlayer player;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,18 +72,15 @@ public class MovieDetailActivity extends AppCompatActivity {
         finish();
     }
 
-    private void showVideoPopup(String videoUrl) {
-        Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.popup_video);
-        PlayerControlView playerView = dialog.findViewById(R.id.playerView);
-        player = new ExoPlayer.Builder(this).build();
-        playerView.setPlayer(player);
-        MediaItem mediaItem = MediaItem.fromUri(Uri.parse(videoUrl));
-        player.setMediaItem(mediaItem);
-        player.prepare();
-        player.setPlayWhenReady(true);
-        dialog.setOnDismissListener(dialogInterface -> player.release());
-        dialog.show();
+    private void playVideo(String videoUrl) {
+        if (videoUrl == null || videoUrl.isEmpty()) {
+            Toast.makeText(this, "Trailer không có sẵn.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FragmentManager fm = getSupportFragmentManager();
+        VideoPlayerFragment videoPlayerFragment = VideoPlayerFragment.newInstance(videoUrl);
+        videoPlayerFragment.show(fm, "fragment_video_player");
     }
 
     private void getMovieDetail(int movieId) {
@@ -98,36 +90,52 @@ public class MovieDetailActivity extends AppCompatActivity {
         call.enqueue(new Callback<MovieService.MovieDto>() {
             @Override
             public void onResponse(Call<MovieService.MovieDto> call, Response<MovieService.MovieDto> response) {
-                if (!response.isSuccessful() || response.body() == null) return;
+                if (!response.isSuccessful() || response.body() == null) {
+                    Toast.makeText(MovieDetailActivity.this, "Lỗi khi tải thông tin phim", Toast.LENGTH_SHORT).show();
+                    return;
+                }
 
                 MovieService.MovieDto res = response.body();
+                Log.d("MovieDetailActivity", "Poster URL: " + res.poster);
+                Log.d("MovieDetailActivity", "Trailer URL: " + res.trailer);
 
                 ((TextView) findViewById(R.id.title)).setText(res.title);
                 ((TextView) findViewById(R.id.description)).setText(res.description);
                 ((TextView) findViewById(R.id.release)).setText("Phát hành: " + res.releaseDate);
                 ((TextView) findViewById(R.id.duration)).setText("Thời lượng: " + res.duration + " phút");
-                // You may want to add a TextView for director and cast in your layout
-                // ((TextView) findViewById(R.id.director)).setText("Đạo diễn: " + res.director);
-                // ((TextView) findViewById(R.id.cast)).setText("Diễn viên: " + res.cast);
 
-                Picasso.get().load(res.posterUrl).into((ImageView) findViewById(R.id.movieImg));
+                Picasso.get()
+                        .load(res.poster)
+                        .placeholder(R.drawable.conan_movie) // Ảnh tạm
+                        .error(R.drawable.conan_movie) // Ảnh khi có lỗi
+                        .into((ImageView) findViewById(R.id.movieImg), new com.squareup.picasso.Callback() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d("Picasso", "Tải ảnh thành công!");
+                            }
+
+                            @Override
+                            public void onError(Exception e) {
+                                Log.e("Picasso", "Lỗi khi tải ảnh: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        });
 
                 LinearLayout buttonTrailer = findViewById(R.id.btnTrailer);
-                buttonTrailer.setOnClickListener(v -> showVideoPopup(res.linkTrailer));
+                buttonTrailer.setOnClickListener(v -> playVideo(res.trailer));
             }
 
             @Override
             public void onFailure(Call<MovieService.MovieDto> call, Throwable t) {
                 Log.e("MovieDetailActivity", "Failed to get movie details: " + t.getMessage());
+                Toast.makeText(MovieDetailActivity.this, "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
     private void getShowtimes(Context context, int movieId) {
         List<Showtime> showtimes = new ArrayList<>();
-
         MovieService apiService = ApiClient.getRetrofitInstance().create(MovieService.class);
-
         Call<MovieService.GetShowtimesResponse> call = apiService.getShowtimes(movieId);
         call.enqueue(new Callback<MovieService.GetShowtimesResponse>() {
             @Override
@@ -152,11 +160,4 @@ public class MovieDetailActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (player != null) {
-            player.release();
-        }
-    }
 }
