@@ -1,7 +1,6 @@
 <!-- activity_main.xml -->
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:flexbox="http://schemas.android.com/apk/res-auto"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -10,20 +9,19 @@
     android:background="#19203e"
     android:padding="16dp"
     android:fitsSystemWindows="true"
-    tools:context=".MainActivity">
+    tools:context=".HallActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <!-- Header: Back, Logo, History, SignOut -->
         <LinearLayout
             android:id="@+id/header"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="fill_horizontal|center"
             android:paddingHorizontal="16dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
             <LinearLayout
@@ -66,6 +64,7 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- Hall Title -->
         <TextView
             android:id="@+id/hallTitle"
             android:layout_width="match_parent"
@@ -76,190 +75,119 @@
             android:textColor="#FFFFFF"
             android:textSize="24sp"
             android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/header" />
+            app:layout_constraintTop_toBottomOf="@id/header" />
 
+        <!-- Show Time -->
         <TextView
             android:id="@+id/showTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:paddingLeft="16dp"
-            android:text="Ngày chiếu: Thứ Bảy, 30/11/2024, 15:30 giờ"
-            android:textAlignment="viewStart"
+            android:text="Ngày chiếu: ..."
             android:textColor="#FFFFFF"
-            android:textSize="14sp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/hallTitle" />
+            app:layout_constraintTop_toBottomOf="@id/hallTitle" />
 
+        <!-- Seat RecyclerView -->
         <HorizontalScrollView
             android:id="@+id/horizontalScrollView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:paddingHorizontal="16dp"
             android:fillViewport="true"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/showTime">
-
-            <!-- RecyclerView for seat selection -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/seatRecyclerView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:scrollbars="horizontal|vertical" />
+                android:layout_gravity="center_horizontal" />
         </HorizontalScrollView>
 
-        <com.google.android.flexbox.FlexboxLayout
-            android:id="@+id/flexbox_layout"
+        <!-- Seat Type Legend -->
+        <LinearLayout
+            android:id="@+id/seatTypeContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            app:flexDirection="row"
+            android:orientation="vertical"
             android:paddingHorizontal="16dp"
-            app:flexWrap="wrap"
-            app:justifyContent="flex_start"
-            flexbox:layout_constraintEnd_toEndOf="parent"
-            flexbox:layout_constraintStart_toStartOf="parent"
-            flexbox:layout_constraintTop_toBottomOf="@+id/horizontalScrollView">
+            app:layout_constraintTop_toBottomOf="@id/horizontalScrollView" />
 
-            <!-- Các item con -->
-
-            <LinearLayout
-                android:layout_width="158dp"
-                android:layout_height="wrap_content"
-                android:gravity="start|center">
-                <RelativeLayout
-                    android:id="@+id/normalExplain"
-                    android:layout_width="45dp"
-                    android:layout_height="30dp"
-                    android:layout_margin="4dp"
-                    android:background="@drawable/seat_border">
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:text="Ghế Thường"
-                    android:layout_marginRight="16dp"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center">
-                <RelativeLayout
-                    android:id="@+id/vipExplain"
-                    android:layout_width="45dp"
-                    android:layout_height="30dp"
-                    android:layout_margin="4dp"
-                    android:background="@drawable/seat_border">
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:text="Ghế VIP"
-                    android:layout_marginRight="16dp"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center">
-                <RelativeLayout
-                    android:id="@+id/selectedExplain"
-                    android:layout_width="45dp"
-                    android:layout_height="30dp"
-                    android:layout_margin="4dp"
-                    android:background="@drawable/seat_border">
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:text="Ghế bạn chọn"
-                    android:layout_marginRight="16dp"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:gravity="center">
-                <RelativeLayout
-                    android:id="@+id/bookedExplain"
-                    android:layout_width="45dp"
-                    android:layout_height="30dp"
-                    android:layout_margin="4dp"
-                    android:background="@drawable/seat_border">
-                </RelativeLayout>
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="4dp"
-                    android:text="Ghế đã đặt"
-                    android:layout_marginRight="16dp"
-                    android:textColor="@color/white" />
-            </LinearLayout>
-
-
-
-        </com.google.android.flexbox.FlexboxLayout>
-
+        <!-- Food & Beverage Title -->
         <TextView
             android:id="@+id/fabTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="96dp"
+            android:layout_marginTop="16dp"
             android:text="CHỌN BẮP NƯỚC"
             android:textAlignment="center"
             android:textColor="#FFFFFF"
             android:textSize="24sp"
             android:textStyle="bold"
+            app:layout_constraintTop_toBottomOf="@id/seatTypeContainer" />
+
+        <!-- Choose Food Button -->
+        <Button
+            android:id="@+id/btnChooseFood"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:backgroundTint="#f3ea28"
+            android:text="CHỌN ĐỒ ĂN"
+            android:textColor="#663399"
+            android:textStyle="bold"
+            app:cornerRadius="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="@id/flexbox_layout" />
+            app:layout_constraintTop_toBottomOf="@id/fabTitle" />
 
-        <HorizontalScrollView
-            android:id="@+id/horizontalScrollView2"
+        <!-- Order Summary Section -->
+        <LinearLayout
+            android:id="@+id/orderSummaryLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
             android:layout_marginTop="16dp"
-            android:fillViewport="true"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/fabTitle">
+            android:padding="12dp"
+            android:background="#2A345C"
+            android:visibility="gone" 
+            tools:visibility="visible"
+            app:layout_constraintTop_toBottomOf="@id/btnChooseFood">
 
-            <!-- RecyclerView for seat selection -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/fabRecyclerView"
-                android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/selectedFoodTextView"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:scrollbars="horizontal|vertical" />
-        </HorizontalScrollView>
+                android:textColor="#FFFFFF"
+                android:textSize="14sp"
+                tools:text="- 2x Bắp rang bơ phô mai\n- 1x Pepsi" />
 
+            <TextView
+                android:id="@+id/totalPriceTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="end"
+                android:textColor="#f3ea28"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                tools:text="Tổng: 255,000 VNĐ" />
+        </LinearLayout>
+
+        <!-- Order Button -->
         <Button
             android:id="@+id/orderButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:backgroundTint="#f3ea28"
             android:text="ĐẶT VÉ"
             android:textColor="#663399"
             android:textStyle="bold"
-            android:layout_marginTop="8dp"
             app:cornerRadius="8dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/horizontalScrollView2" />
+            app:layout_constraintTop_toBottomOf="@id/orderSummaryLayout" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

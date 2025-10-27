@@ -2,15 +2,16 @@ package com.example.prm392_cinema.Services;
 
 import com.example.prm392_cinema.Models.Genre;
 import com.example.prm392_cinema.Models.Movie;
-import com.example.prm392_cinema.Models.Showtime;
+import com.example.prm392_cinema.model.ShowtimeDetail;
+import com.example.prm392_cinema.model.TheaterShowtime;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
-import retrofit2.http.Query;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface MovieService {
 
@@ -30,6 +31,13 @@ public interface MovieService {
 
     @GET("/api/Movie/MovieById/{id}")
     Call<MovieDto> getMovieDetail(@Path("id") int id);
+
+    @GET("/api/showtimes/GetShowTimeOfMovie")
+    Call<List<TheaterShowtime>> getShowtimesForMovie(@Query("movieId") int movieId, @Query("date") String date);
+
+    @GET("/api/showtimes/search/{showtimeId}")
+    Call<ShowtimeDetail> getShowtimeDetail(@Path("showtimeId") int showtimeId);
+
 
     // Updated DTO to match the API response
     public class MovieDto {
@@ -61,7 +69,7 @@ public interface MovieService {
         public List<ShowtimeDto> data;
     }
 
-    public class ShowtimeDto extends Showtime {
+    public class ShowtimeDto extends com.example.prm392_cinema.Models.Showtime {
         public HallDto hall;
 
         public ShowtimeDto(int showtimeId, int movieId, int hallId, int seatPrice, String showDate, String hallNumber) {

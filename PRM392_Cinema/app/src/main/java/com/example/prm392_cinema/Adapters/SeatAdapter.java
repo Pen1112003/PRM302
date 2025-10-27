@@ -2,11 +2,9 @@ package com.example.prm392_cinema.Adapters;
 
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -23,8 +21,18 @@ import java.util.Map;
 public class SeatAdapter extends RecyclerView.Adapter<SeatAdapter.SeatViewHolder> {
     private final int BORDER_WIDTH = 6;
     private final List<Seat> seatList;
-    public Map<Integer, Boolean> seatIndexToSelected;
+    private Map<Integer, Boolean> seatSelectionMap;
     private int totalPrice = 0;
+    private OnSeatSelectionChangedListener listener;
+
+    // Interface để lắng nghe sự kiện thay đổi lựa chọn ghế
+    public interface OnSeatSelectionChangedListener {
+        void onSeatSelectionChanged();
+    }
+
+    public void setOnSeatSelectionChangedListener(OnSeatSelectionChangedListener listener) {
+        this.listener = listener;
+    }
 
     public int getTotalPrice() {
         return totalPrice;
@@ -32,11 +40,12 @@ public class SeatAdapter extends RecyclerView.Adapter<SeatAdapter.SeatViewHolder
 
     public SeatAdapter(List<Seat> seatList) {
         this.seatList = seatList;
-        this.seatIndexToSelected = new HashMap<>();
-    }
-
-    public List<Seat> getSeatList() {
-        return seatList;
+        this.seatSelectionMap = new HashMap<>();
+        for (Seat seat : seatList) {
+            if (seat.isSeat() && !seat.isBooked()) {
+                seatSelectionMap.put(seat.getSeatId(), false);
+            }
+        }
     }
 
     @NonNull
@@ -52,56 +61,61 @@ public class SeatAdapter extends RecyclerView.Adapter<SeatAdapter.SeatViewHolder
         updateSeatView(holder, seat);
 
         holder.itemView.setOnClickListener(v -> {
-            if (seat.isAvailable()) {
-                // Đổi trạng thái từ "có sẵn" sang "đã chọn"
-                this.seatIndexToSelected.put(seat.getSeatId(), true);
-                totalPrice += seat.getPrice();
-                seat.setStatus(Seat.STATUS_SELECTED);
-            } else if (seat.isSelected()) {
-                // Đổi trạng thái từ "đã chọn" sang "trống"
-                this.seatIndexToSelected.remove(seat.getSeatId());
-                totalPrice -= seat.getPrice();
-                seat.setStatus(Seat.STATUS_AVAILABLE);
+            if (!seat.isSeat() || seat.isBooked()) {
+                return;
             }
-            // Cập nhật lại view khi ghế được chọn
+
+            boolean isSelected = seatSelectionMap.get(seat.getSeatId());
+            seatSelectionMap.put(seat.getSeatId(), !isSelected);
+
+            if (!isSelected) {
+                totalPrice += seat.getPrice();
+            } else {
+                totalPrice -= seat.getPrice();
+            }
+
             notifyItemChanged(position);
+
+            // Thông báo cho listener về sự thay đổi
+            if (listener != null) {
+                listener.onSeatSelectionChanged();
+            }
         });
     }
 
     private void updateSeatView(SeatViewHolder holder, Seat seat) {
         if (!seat.isSeat()) {
-            holder.itemView.setVisibility(View.INVISIBLE);  // Hide seat for empty space
-            holder.seatName.setText("");
+            holder.itemView.setVisibility(View.INVISIBLE);
             return;
         }
-
+        holder.itemView.setVisibility(View.VISIBLE);
         holder.seatName.setText(seat.getName());
-        GradientDrawable background = (GradientDrawable) holder.seatStyle.getBackground();
+        GradientDrawable background = (GradientDrawable) holder.itemView.getBackground();
 
         if (seat.isBooked()) {
             background.setColor(Color.rgb(187, 187, 187));
             background.setStroke(BORDER_WIDTH, Color.rgb(187, 187, 187));
-        } else if (seat.isSelected()) {
+        } else if (seatSelectionMap.containsKey(seat.getSeatId()) && seatSelectionMap.get(seat.getSeatId())) {
             background.setColor(Color.rgb(243, 234, 40));
             background.setStroke(BORDER_WIDTH, Color.rgb(243, 234, 40));
-        } else if (seat.isNormal()) {
-            background.setColor(Color.rgb(255, 255, 255));
-            background.setStroke(BORDER_WIDTH, Color.GREEN);
         } else {
-            background.setColor(Color.rgb(255, 255, 255));
-            background.setStroke(BORDER_WIDTH, Color.RED);
+            background.setColor(Color.WHITE);
+            if (seat.getSeatTypeId() == 2) {
+                background.setStroke(BORDER_WIDTH, Color.RED);
+            } else {
+                background.setStroke(BORDER_WIDTH, Color.GREEN);
+            }
         }
     }
 
     public List<Integer> getSelectedSeatId() {
-        List<Integer> result = new ArrayList<>();
-        for (Map.Entry<Integer, Boolean> entry : seatIndexToSelected.entrySet()) {
-            Integer key = entry.getKey();
-            Boolean value = entry.getValue();
-            if (!value) continue;
-            result.add(key);
+        List<Integer> selectedSeats = new ArrayList<>();
+        for (Map.Entry<Integer, Boolean> entry : seatSelectionMap.entrySet()) {
+            if (entry.getValue()) {
+                selectedSeats.add(entry.getKey());
+            }
         }
-        return result;
+        return selectedSeats;
     }
 
     @Override
@@ -110,12 +124,10 @@ public class SeatAdapter extends RecyclerView.Adapter<SeatAdapter.SeatViewHolder
     }
 
     static class SeatViewHolder extends RecyclerView.ViewHolder {
-        View seatStyle;
         TextView seatName;
 
         SeatViewHolder(View itemView) {
             super(itemView);
-            seatStyle = itemView;
             seatName = itemView.findViewById(R.id.itemText);
         }
     }
