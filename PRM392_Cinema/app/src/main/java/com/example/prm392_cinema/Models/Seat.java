@@ -19,11 +19,12 @@ public class Seat {
     private boolean isSold;
     private int colIndex;
     private int seatIndex;
+    private int seatTypeId;
 
     //from client
     private int status;  //checked, ordered, ready
 
-    public Seat(int seatId, String seatType, int price, boolean isSeat, String name, boolean isSold, int colIndex, int seatIndex) {
+    public Seat(int seatId, String seatType, int price, boolean isSeat, String name, boolean isSold, int colIndex, int seatIndex, int seatTypeId) {
         this.seatId = seatId;
         this.seatType = seatType;
         this.price = price;
@@ -33,6 +34,7 @@ public class Seat {
         this.colIndex = colIndex;
         this.seatIndex = seatIndex;
         this.status = isSold ? STATUS_BOOKED : STATUS_AVAILABLE;
+        this.seatTypeId = seatTypeId;
     }
 
     public int getSeatId() {
@@ -125,5 +127,13 @@ public class Seat {
 
     public boolean isVip() {
         return Objects.equals(seatType, TYPE_VIP);
+    }
+
+    public int getSeatTypeId() {
+        return seatTypeId;
+    }
+
+    public void setSeatTypeId(int seatTypeId) {
+        this.seatTypeId = seatTypeId;
     }
 }

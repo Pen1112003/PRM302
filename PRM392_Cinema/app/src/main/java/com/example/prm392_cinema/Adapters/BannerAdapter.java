@@ -1,17 +1,17 @@
 package com.example.prm392_cinema.Adapters;
+
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.prm392_cinema.MainActivity;
 import com.example.prm392_cinema.Models.Movie;
 import com.example.prm392_cinema.MovieDetailActivity;
 import com.example.prm392_cinema.R;
@@ -20,12 +20,13 @@ import com.squareup.picasso.Picasso;
 import java.util.List;
 
 public class BannerAdapter extends RecyclerView.Adapter<BannerAdapter.BannerViewHolder> {
-    private List<Movie> movies;
-    private Context context;
 
-    public BannerAdapter(Context context, List<Movie> movies) {
+    private Context context;
+    private List<Movie> movieList;
+
+    public BannerAdapter(Context context, List<Movie> movieList) {
         this.context = context;
-        this.movies = movies;
+        this.movieList = movieList;
     }
 
     @NonNull
@@ -37,46 +38,50 @@ public class BannerAdapter extends RecyclerView.Adapter<BannerAdapter.BannerView
 
     @Override
     public void onBindViewHolder(@NonNull BannerViewHolder holder, int position) {
-        Movie movie = movies.get(position);
+        Movie movie = movieList.get(position);
+        holder.bannerTitleTextView.setText(movie.getTitle());
 
-        // Hiển thị thông tin từ Movie
-        holder.titleTextView.setText(movie.getTitle());
-        holder.ratingTextView.setText(String.valueOf(movie.getRating()));
-        holder.genreTextView.setText(movie.getGenre());
-        holder.durationTextView.setText(String.valueOf(movie.getDuration()) + "m");
-        Picasso.get().load(movie.getPoster()).placeholder(R.drawable.conan_movie).into(holder.imageView);
-        // Nếu poster là một URL, sử dụng Glide để tải ảnh
-//        Glide.with(context)
-//                .load(movie.getPoster()) // Đảm bảo URL hợp lệ
-//                .placeholder(R.drawable.placeholder) // Ảnh tạm trong khi tải poster
-//                .into(holder.imageView);
+        String posterUrl = movie.getPoster();
+        Log.d("BannerAdapter", "Loading banner for " + movie.getTitle() + ": " + posterUrl);
 
-        // Xử lý khi nhấn vào nút "Xem chi tiết"
-        holder.button.setOnClickListener(v -> {
+        if (posterUrl != null && !posterUrl.isEmpty()) {
+            Picasso.get()
+                    .load(posterUrl)
+                    .placeholder(R.drawable.conan_movie)
+                    .error(R.drawable.conan_movie)
+                    .into(holder.bannerImageView);
+        } else {
+            holder.bannerImageView.setImageResource(R.drawable.conan_movie);
+        }
+
+        holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(context, MovieDetailActivity.class);
-            intent.putExtra("movieId", movie.getMovieId()); // Truyền đối tượng Movie sang Activity mới
+            intent.putExtra("movieId", movie.getMovieId());
             context.startActivity(intent);
         });
     }
 
     @Override
     public int getItemCount() {
-        return movies.size();
+        return movieList.size();
     }
 
-    static class BannerViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageView;
-        TextView titleTextView, ratingTextView, genreTextView, durationTextView;
-        Button button;
+    public void updateMovies(List<Movie> newMovies) {
+        this.movieList.clear();
+        if (newMovies != null) {
+            this.movieList.addAll(newMovies);
+        }
+        notifyDataSetChanged();
+    }
+
+    public static class BannerViewHolder extends RecyclerView.ViewHolder {
+        ImageView bannerImageView;
+        TextView bannerTitleTextView;
 
         public BannerViewHolder(@NonNull View itemView) {
             super(itemView);
-            imageView = itemView.findViewById(R.id.bannerImage);
-            button = itemView.findViewById(R.id.detailButton);
-            titleTextView = itemView.findViewById(R.id.movieTitle);
-            ratingTextView = itemView.findViewById(R.id.movieRating);
-            genreTextView = itemView.findViewById(R.id.movieGenre);
-            durationTextView = itemView.findViewById(R.id.movieDuration);
+            bannerImageView = itemView.findViewById(R.id.bannerImageView);
+            bannerTitleTextView = itemView.findViewById(R.id.bannerTitleTextView);
         }
     }
 }

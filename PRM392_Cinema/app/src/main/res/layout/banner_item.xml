@@ -1,109 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <ImageView
-        android:id="@+id/bannerImage"
+        android:id="@+id/bannerImageView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="fitCenter" />
+        android:scaleType="centerCrop" />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/bannerTitleTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="#80000000"
-        android:orientation="vertical"
-        android:padding="18dp">
-
-        <!-- Dòng 1: Tên phim -->
-        <TextView
-            android:id="@+id/movieTitle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:text="Tên Phim"
-            android:textColor="@android:color/white"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <!-- Thẻ rating -->
-            <LinearLayout
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:background="@drawable/rating_background"
-                android:orientation="horizontal"
-                android:padding="4dp">
-
-                <ImageView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginEnd="4dp"
-                    android:src="@drawable/baseline_star_24"
-                    android:tint="@color/white"
-                    />
-
-                <TextView
-                    android:id="@+id/movieRating"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="4.0"
-                    android:paddingRight="4dp"
-                    android:gravity="center"
-                    android:textColor="@android:color/white"
-                    android:textSize="14sp" />
-            </LinearLayout>
-
-            <!-- Thời gian -->
-            <TextView
-                android:id="@+id/movieDuration"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:text="120 phút"
-                android:textColor="@android:color/white"
-                android:textSize="14sp" />
-
-            <!-- Thể loại -->
-            <TextView
-                android:id="@+id/movieGenre"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="@drawable/genre_background"
-                android:text="Hành Động"
-                android:textColor="@android:color/white"
-                android:textSize="14sp"
-            android:padding="6dp"
-            android:layout_marginStart="16dp"/>
-
-        </LinearLayout>
-
-        <!-- Dòng 3: Nút xem chi tiết -->
-        <Button
-            android:id="@+id/detailButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal"
-            android:layout_marginTop="8dp"
-            android:paddingHorizontal="16dp"
-            android:backgroundTint="#f3ea28"
-            android:textColor="#663399"
-            app:cornerRadius="8dp"
-            android:text="Xem Chi Tiết"
-            />
-
-    </LinearLayout>
-
+        android:background="#80000000" 
+        android:padding="12dp"
+        android:text="Movie Title"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:textStyle="bold" />
 
 </FrameLayout>

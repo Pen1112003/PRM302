@@ -1,6 +1,5 @@
 package com.example.prm392_cinema;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,24 +14,27 @@ import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.prm392_cinema.Adapters.DateAdapter;
-import com.example.prm392_cinema.Models.Showtime;
 import com.example.prm392_cinema.Services.ApiClient;
 import com.example.prm392_cinema.Services.MovieService;
-import com.example.prm392_cinema.DateUtils.DateGroup;
 import com.example.prm392_cinema.Stores.AuthStore;
 import com.example.prm392_cinema.Stores.HallScreenStore;
+import com.example.prm392_cinema.model.Showtime;
+import com.example.prm392_cinema.model.TheaterShowtime;
 import com.squareup.picasso.Picasso;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class MovieDetailActivity extends AppCompatActivity {
-    private RecyclerView recyclerView;
+public class MovieDetailActivity extends AppCompatActivity implements DateAdapter.OnDateClickListener, ShowtimeAdapter.OnShowtimeClickListener {
+    private RecyclerView datesRecyclerView, showtimesRecyclerView;
+    private int movieId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,19 +42,51 @@ public class MovieDetailActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_movie_detail);
 
-        recyclerView = findViewById(R.id.datesRecyclerView);
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        datesRecyclerView = findViewById(R.id.datesRecyclerView);
+        datesRecyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        showtimesRecyclerView = findViewById(R.id.showtimesRecyclerView);
+        showtimesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         if (getIntent() == null) return;
 
-        int movieId = getIntent().getIntExtra("movieId", 0);
+        movieId = getIntent().getIntExtra("movieId", 0);
         HallScreenStore.movieId = movieId;
         getMovieDetail(movieId);
-        getShowtimes(this, movieId);
+
+        setupDatesRecyclerView();
 
         findViewById(R.id.btnSignOut).setOnClickListener(v -> handleSignOut());
         findViewById(R.id.backIcon).setOnClickListener(v -> handleBack());
         (findViewById(R.id.btnHistory)).setOnClickListener(v -> navigateHistory());
+    }
+
+    private void setupDatesRecyclerView() {
+        List<Calendar> dates = new ArrayList<>();
+        Calendar calendar = Calendar.getInstance();
+        for (int i = 0; i < 7; i++) {
+            dates.add((Calendar) calendar.clone());
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+        }
+
+        DateAdapter dateAdapter = new DateAdapter(this, dates, this);
+        datesRecyclerView.setAdapter(dateAdapter);
+
+        // Initial load for the current date
+        onDateClick(dates.get(0));
+    }
+
+    @Override
+    public void onDateClick(Calendar date) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        String selectedDate = dateFormat.format(date.getTime());
+        getShowtimesForMovie(movieId, selectedDate);
+    }
+
+    @Override
+    public void onShowtimeClick(Showtime showtime) {
+        Intent intent = new Intent(this, HallActivity.class);
+        intent.putExtra("showtimeId", showtime.getShowtimeId());
+        startActivity(intent);
     }
 
     private void navigateHistory()
@@ -133,31 +167,32 @@ public class MovieDetailActivity extends AppCompatActivity {
         });
     }
 
-    private void getShowtimes(Context context, int movieId) {
-        List<Showtime> showtimes = new ArrayList<>();
+    private void getShowtimesForMovie(int movieId, String date) {
+        Log.d("MovieDetailActivity", "Fetching showtimes for movieId: " + movieId + " and date: " + date);
+
         MovieService apiService = ApiClient.getRetrofitInstance().create(MovieService.class);
-        Call<MovieService.GetShowtimesResponse> call = apiService.getShowtimes(movieId);
-        call.enqueue(new Callback<MovieService.GetShowtimesResponse>() {
+        Call<List<TheaterShowtime>> call = apiService.getShowtimesForMovie(movieId, date);
+        call.enqueue(new Callback<List<TheaterShowtime>>() {
             @Override
-            public void onResponse(Call<MovieService.GetShowtimesResponse> call, Response<MovieService.GetShowtimesResponse> response) {
-                if (!response.isSuccessful() || response.body() == null || response.body().result == null) return;
-
-                MovieService.GetShowtimesResponse res = response.body();
-
-                for (MovieService.ShowtimeDto showtime : res.result.data) {
-                    showtimes.add(new Showtime(showtime.getShowtimeId(), showtime.getMovieId(), showtime.getHallId(), showtime.getSeatPrice(), showtime.getShowDate(), showtime.hall.hallName));
+            public void onResponse(Call<List<TheaterShowtime>> call, Response<List<TheaterShowtime>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    Log.d("MovieDetailActivity", "Successfully fetched showtimes. Count: " + response.body().size());
+                    List<TheaterShowtime> theaterShowtimes = response.body();
+                    TheaterAdapter theaterAdapter = new TheaterAdapter(MovieDetailActivity.this, theaterShowtimes, MovieDetailActivity.this);
+                    showtimesRecyclerView.setAdapter(theaterAdapter);
+                } else {
+                    Log.e("MovieDetailActivity", "Failed to fetch showtimes. Code: " + response.code() + ", Message: " + response.message());
+                    // Clear the RecyclerView if there are no showtimes for the selected date
+                    showtimesRecyclerView.setAdapter(null);
                 }
-
-                List<DateGroup> dateGroups = DateGroup.groupShowtimesByDate(showtimes);
-                DateAdapter dateAdapter = new DateAdapter(context, dateGroups);
-                recyclerView.setAdapter(dateAdapter);
             }
 
             @Override
-            public void onFailure(Call<MovieService.GetShowtimesResponse> call, Throwable t) {
-                Log.e("MovieDetailActivity", "Failed to get showtimes: " + t.getMessage());
+            public void onFailure(Call<List<TheaterShowtime>> call, Throwable t) {
+                Log.e("MovieDetailActivity", "Failed to get showtimes: " + t.getMessage(), t);
+                Toast.makeText(MovieDetailActivity.this, "Lỗi mạng: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+                 showtimesRecyclerView.setAdapter(null);
             }
         });
     }
-
 }

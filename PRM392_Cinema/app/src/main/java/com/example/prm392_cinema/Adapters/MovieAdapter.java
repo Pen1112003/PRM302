@@ -1,5 +1,7 @@
 package com.example.prm392_cinema.Adapters;
+
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,24 +10,23 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-
 import com.example.prm392_cinema.Models.Movie;
 import com.example.prm392_cinema.R;
 import com.squareup.picasso.Picasso;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder> {
 
     private Context context;
-    private ArrayList<Movie> movieList;
+    private List<Movie> movieList;
     private OnItemClickListener listener;
 
     public interface OnItemClickListener {
         void onItemClick(Movie movie);
     }
 
-    public MovieAdapter(Context context, ArrayList<Movie> movieList, OnItemClickListener listener) {
+    public MovieAdapter(Context context, List<Movie> movieList, OnItemClickListener listener) {
         this.context = context;
         this.movieList = movieList;
         this.listener = listener;
@@ -42,17 +43,26 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     public void onBindViewHolder(@NonNull MovieViewHolder holder, int position) {
         Movie movie = movieList.get(position);
         holder.titleTextView.setText(movie.getTitle());
-        holder.ratingTextView.setText(String.valueOf(movie.getRating()));
-        holder.genreTextView.setText(movie.getGenre());
-        Picasso.get().load(movie.getPoster()).placeholder(R.drawable.conan_movie).into(holder.posterImageView);
+        holder.durationTextView.setText("Thời lượng: " + movie.getDuration() + " phút");
 
-        // Sử dụng Glide để tải ảnh poster từ URL
-//        Glide.with(context)
-//                .load(movie.getPoster())
-//                .placeholder(R.drawable.placeholder) // hình ảnh tạm trong khi tải poster
-//                .into(holder.posterImageView);
+        Log.d("MovieAdapter", "Loading poster for " + movie.getTitle() + ": " + movie.getPoster());
 
-        holder.itemView.setOnClickListener(v -> listener.onItemClick(movie));
+        if (movie.getPoster() != null && !movie.getPoster().isEmpty()) {
+            Picasso.get()
+                    .load(movie.getPoster())
+                    .placeholder(R.drawable.conan_movie)
+                    .error(R.drawable.conan_movie)
+                    .into(holder.posterImageView);
+        } else {
+            holder.posterImageView.setImageResource(R.drawable.conan_movie);
+        }
+
+        // Set the click listener to the item view
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(movie);
+            }
+        });
     }
 
     @Override
@@ -60,16 +70,24 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         return movieList.size();
     }
 
+    public void updateMovies(List<Movie> newMovies) {
+        this.movieList.clear();
+        if (newMovies != null) {
+            this.movieList.addAll(newMovies);
+        }
+        notifyDataSetChanged();
+    }
+
     public static class MovieViewHolder extends RecyclerView.ViewHolder {
-        TextView titleTextView, ratingTextView, genreTextView;
+        TextView titleTextView, durationTextView, genreTextView;
         ImageView posterImageView;
 
         public MovieViewHolder(@NonNull View itemView) {
             super(itemView);
             titleTextView = itemView.findViewById(R.id.titleTextView);
-            ratingTextView = itemView.findViewById(R.id.ratingTextView);
-            genreTextView = itemView.findViewById(R.id.genreTextView);
             posterImageView = itemView.findViewById(R.id.posterImageView);
+            durationTextView = itemView.findViewById(R.id.durationTextView);
+            genreTextView = itemView.findViewById(R.id.genreTextView);
         }
     }
 }
