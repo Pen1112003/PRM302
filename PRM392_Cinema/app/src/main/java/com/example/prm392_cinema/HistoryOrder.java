@@ -1,10 +1,16 @@
 package com.example.prm392_cinema;
 
+import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,7 +19,10 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -22,10 +31,12 @@ import com.example.prm392_cinema.Adapters.OrderAdapter;
 import com.example.prm392_cinema.Services.ApiClient;
 import com.example.prm392_cinema.Services.BookingService;
 import com.example.prm392_cinema.Stores.AuthStore;
+import com.example.prm392_cinema.receivers.NotificationReceiver;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -39,9 +50,16 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
 
     private RecyclerView recyclerViewOrders;
     private OrderAdapter orderAdapter;
-    private List<BookingService.BookingDetailAllDTO> orderList; 
-    private ProgressBar progressBar; 
-    private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd h:mm a", Locale.getDefault());
+    private List<BookingService.BookingDetailAllDTO> orderList;
+    private ProgressBar progressBar;
+    // Use Locale.US for AM/PM parsing consistency
+    private SimpleDateFormat dateTimeFormat = new SimpleDateFormat("yyyy-MM-dd h:mm a", Locale.US);
+
+    private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+        if (!isGranted) {
+            Toast.makeText(this, "Bạn đã từ chối quyền gửi thông báo.", Toast.LENGTH_SHORT).show();
+        }
+    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,14 +71,15 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         recyclerViewOrders.setLayoutManager(new LinearLayoutManager(this));
 
         orderList = new ArrayList<>();
-        orderAdapter = new OrderAdapter(orderList, this, this); 
+        orderAdapter = new OrderAdapter(orderList, this, this);
         recyclerViewOrders.setAdapter(orderAdapter);
 
         findViewById(R.id.btnSignOut).setOnClickListener(v -> handleSignOut());
-
         findViewById(R.id.backIcon).setOnClickListener(v -> handleBack());
-        
         findViewById(R.id.btnHistory).setVisibility(View.GONE);
+
+        askNotificationPermission();
+        checkExactAlarmPermission();
     }
 
     @Override
@@ -69,16 +88,36 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         loadUserIdAndFetchData();
     }
 
+    private void askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+            }
+        }
+    }
+
+    private void checkExactAlarmPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+            if (!alarmManager.canScheduleExactAlarms()) {
+                new AlertDialog.Builder(this)
+                    .setTitle("Yêu cầu quyền đặc biệt")
+                    .setMessage("Ứng dụng cần quyền đặt báo thức chính xác để gửi thông báo nhắc nhở. Vui lòng cấp quyền trong màn hình cài đặt tiếp theo.")
+                    .setPositiveButton("OK", (dialog, which) -> {
+                        Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Hủy", null)
+                    .show();
+            }
+        }
+    }
+
     private void loadUserIdAndFetchData() {
         String userId = AuthStore.userId;
-
-        Log.d("HistoryOrder", "Attempting to load data for userId: " + userId);
-
         if (userId != null && !userId.isEmpty()) {
-            Log.d("HistoryOrder", "UserId found in AuthStore: " + userId);
             loadData(userId);
         } else {
-            Log.e("HistoryOrder", "User ID not found in AuthStore. Cannot load data.");
             Toast.makeText(this, "Bạn cần đăng nhập để xem lịch sử.", Toast.LENGTH_LONG).show();
             Intent intent = new Intent(HistoryOrder.this, LoginActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
@@ -89,101 +128,112 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
 
     private void handleSignOut() {
         SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.SHARED_PREFS, MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.clear();
-        editor.apply();
-
+        sharedPreferences.edit().clear().apply();
         AuthStore.userId = null;
         AuthStore.jwtToken = null;
-
         Intent intent = new Intent(HistoryOrder.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
     }
 
     private void handleBack() {
-        finish(); 
+        finish();
     }
 
-    private void loadData(String userId) { 
+    private void loadData(String userId) {
         BookingService apiService = ApiClient.getRetrofitInstance().create(BookingService.class);
-
         progressBar.setVisibility(View.VISIBLE);
-        Log.d("HistoryOrder", "Calling searchTickets API for userId: " + userId);
 
-        Call<List<BookingService.BookingDetailAllDTO>> call = apiService.searchTickets(userId); 
+        Call<List<BookingService.BookingDetailAllDTO>> call = apiService.searchTickets(userId);
         call.enqueue(new Callback<List<BookingService.BookingDetailAllDTO>>() {
             @Override
             public void onResponse(Call<List<BookingService.BookingDetailAllDTO>> call, Response<List<BookingService.BookingDetailAllDTO>> response) {
-                progressBar.setVisibility(View.GONE); 
+                progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
-                    Log.d("HistoryOrder", "API search call successful. Raw response body size: " + response.body().size());
                     orderList.clear();
                     Date currentTime = new Date();
-                    Log.d("HistoryOrder", "Current time for filtering: " + dateTimeFormat.format(currentTime));
 
-                    for (BookingService.BookingDetailAllDTO order : response.body()) { 
-                        Log.d("HistoryOrder", "Processing Order ID: " + order.getOrderId() + ", Status: " + order.getStatus() + ", Showtime: " + order.getShowtime());
+                    for (BookingService.BookingDetailAllDTO order : response.body()) {
+                        // Logic for Pending orders
                         if ("Pending".equals(order.getStatus())) {
-                            String showtimeString = order.getShowtime(); 
-                            
-                            if (showtimeString != null) {
+                            String showtimeString = order.getShowtime();
+                            if (showtimeString != null && !showtimeString.isEmpty()) {
                                 try {
                                     Date showtimeDate = dateTimeFormat.parse(showtimeString);
-                                    Log.d("HistoryOrder", "Parsed Showtime Date for Order ID " + order.getOrderId() + ": " + dateTimeFormat.format(showtimeDate));
-                                    if (showtimeDate != null && !showtimeDate.before(currentTime)) {
-                                        orderList.add(order);
-                                        Log.d("HistoryOrder", "Added Pending Order ID: " + order.getOrderId() + " (Showtime in future or present)");
-                                    } else {
-                                        Log.d("HistoryOrder", "Filtered out Pending Order ID: " + order.getOrderId() + " (Showtime in past)");
+                                    if (!showtimeDate.before(currentTime)) {
+                                        orderList.add(order); // Add pending order if showtime is in the future
                                     }
                                 } catch (ParseException e) {
-                                    Log.e("HistoryOrder", "Error parsing showtime date for Order ID " + order.getOrderId() + ": " + e.getMessage());
-                                    orderList.add(order);
-                                    Log.d("HistoryOrder", "Added Order ID: " + order.getOrderId() + " (ParseException, added by default)");
+                                    Log.e("HistoryOrder", "Error parsing showtime for pending order: " + order.getOrderId(), e);
                                 }
-                            } else {
-                                Log.d("HistoryOrder", "Showtime string is null for Order ID: " + order.getOrderId() + ". Adding to list anyway.");
-                                orderList.add(order); 
                             }
-                        } else { 
+                        } else {
+                            // Add all other statuses (like "Completed")
                             orderList.add(order);
-                            Log.d("HistoryOrder", "Added Order ID: " + order.getOrderId() + " (Status is not Pending)");
+                            // Only schedule notifications for Completed orders with future showtimes
+                            if ("Completed".equals(order.getStatus())) {
+                                scheduleNotification(order);
+                            }
                         }
                     }
-                    Log.d("HistoryOrder", "Final orderList size after filtering: " + orderList.size());
+                    
                     if (orderList.isEmpty()) {
                         Toast.makeText(HistoryOrder.this, "Không có lịch sử đặt vé.", Toast.LENGTH_SHORT).show();
                     }
                     orderAdapter.notifyDataSetChanged();
                 } else {
-                    String errorBody = "";
-                    try {
-                        if (response.errorBody() != null) {
-                            errorBody = response.errorBody().string();
-                        }
-                    } catch (Exception e) { /* ignore */ }
-                    Log.e("HistoryOrder", "API search Response unsuccessful or body is null. Code: " + response.code() + " Body: " + errorBody);
-                    Toast.makeText(HistoryOrder.this, "Không có lịch sử đặt vé.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(HistoryOrder.this, "Không thể tải lịch sử đặt vé.", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<List<BookingService.BookingDetailAllDTO>> call, Throwable t) {
-                progressBar.setVisibility(View.GONE); 
-                Log.e("HistoryOrder", "API search call failed: " + t.getMessage(), t);
-                Toast.makeText(HistoryOrder.this, "Lỗi khi tải dữ liệu. Vui lòng kiểm tra kết nối.", Toast.LENGTH_SHORT).show();
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(HistoryOrder.this, "Lỗi kết nối: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    private void scheduleNotification(BookingService.BookingDetailAllDTO order) {
+        try {
+            Date showtimeDate = dateTimeFormat.parse(order.getShowtime());
+            if (showtimeDate == null) return;
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(showtimeDate);
+            calendar.add(Calendar.HOUR, -1); // 1 hour before showtime
+
+            if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+                return; // Don't schedule for past events
+            }
+
+            Intent intent = new Intent(this, NotificationReceiver.class);
+            intent.putExtra("MOVIE_TITLE", order.getMovieTitle());
+            intent.putExtra("SHOWTIME", order.getShowtime());
+            intent.putExtra("NOTIFICATION_ID", order.getOrderId());
+
+            PendingIntent pendingIntent = PendingIntent.getBroadcast(this, order.getOrderId(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+            if (alarmManager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarmManager.canScheduleExactAlarms()) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                Log.d("HistoryOrder", "Scheduled exact notification for order " + order.getOrderId());
+            } else if (alarmManager != null) {
+                alarmManager.set(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+                Log.d("HistoryOrder", "Scheduled inexact notification for order " + order.getOrderId());
+            }
+
+        } catch (ParseException e) {
+            Log.e("HistoryOrder", "Could not parse showtime to schedule notification for order " + order.getOrderId(), e);
+        }
+    }
+
     @Override
     public void onItemClick(int orderId) {
-        Log.d("HistoryOrder", "Item clicked with Order ID: " + orderId);
         fetchOrderDetail(orderId);
     }
 
-    private void fetchOrderDetail(int orderId) { 
+    private void fetchOrderDetail(int orderId) {
         BookingService apiService = ApiClient.getRetrofitInstance().create(BookingService.class);
         progressBar.setVisibility(View.VISIBLE);
 
@@ -193,17 +243,8 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
             public void onResponse(Call<BookingService.BookingDetailItemDTO> call, Response<BookingService.BookingDetailItemDTO> response) {
                 progressBar.setVisibility(View.GONE);
                 if (response.isSuccessful() && response.body() != null) {
-                    BookingService.BookingDetailItemDTO detail = response.body();
-                    Log.d("HistoryOrder", "Detail API call successful for Order ID: " + orderId);
-                    showOrderDetailPopup(detail);
+                    showOrderDetailPopup(response.body());
                 } else {
-                    String errorBody = "";
-                    try {
-                        if (response.errorBody() != null) {
-                            errorBody = response.errorBody().string();
-                        }
-                    } catch (Exception e) { /* ignore */ }
-                    Log.e("HistoryOrder", "Detail API Response unsuccessful or body is null. Code: " + response.code() + " Body: " + errorBody);
                     Toast.makeText(HistoryOrder.this, "Không thể tải chi tiết đơn hàng.", Toast.LENGTH_SHORT).show();
                 }
             }
@@ -211,8 +252,7 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
             @Override
             public void onFailure(Call<BookingService.BookingDetailItemDTO> call, Throwable t) {
                 progressBar.setVisibility(View.GONE);
-                Log.e("HistoryOrder", "Detail API call failed for Order ID: " + orderId + ": " + t.getMessage(), t);
-                Toast.makeText(HistoryOrder.this, "Lỗi khi tải chi tiết. Vui lòng kiểm tra kết nối.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(HistoryOrder.this, "Lỗi khi tải chi tiết: " + t.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -226,28 +266,23 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         ImageView ivPopupMoviePoster = dialogView.findViewById(R.id.iv_popup_movie_poster);
         ImageView ivQrCode = dialogView.findViewById(R.id.iv_qr_code);
         TextView tvMovieTitle = dialogView.findViewById(R.id.tv_movie_title);
-        TextView tvShowtime = dialogView.findViewById(R.id.tv_showtime); 
-        TextView tvRoomName = dialogView.findViewById(R.id.tv_room_name); 
-        TextView tvSeats = dialogView.findViewById(R.id.tv_seats); 
+        TextView tvShowtime = dialogView.findViewById(R.id.tv_showtime);
+        TextView tvRoomName = dialogView.findViewById(R.id.tv_room_name);
+        TextView tvSeats = dialogView.findViewById(R.id.tv_seats);
         TextView tvTotalAmount = dialogView.findViewById(R.id.tv_total_amount);
-        TextView tvPaymentMethod = dialogView.findViewById(R.id.tv_payment_method); 
-        TextView tvPaymentStatus = dialogView.findViewById(R.id.tv_payment_status); 
-        TextView tvOrderId = dialogView.findViewById(R.id.tv_order_id); 
+        TextView tvPaymentMethod = dialogView.findViewById(R.id.tv_payment_method);
+        TextView tvPaymentStatus = dialogView.findViewById(R.id.tv_payment_status);
+        TextView tvOrderId = dialogView.findViewById(R.id.tv_order_id);
 
-        // Load poster
-        Glide.with(this)
-            .load(detail.getPoster())
-            .placeholder(R.drawable.ic_launcher_background)
-            .into(ivPopupMoviePoster);
-
+        Glide.with(this).load(detail.getPoster()).into(ivPopupMoviePoster);
         tvMovieTitle.setText(detail.getMovieTitle());
 
-        if (detail.getShowtime() != null && detail.getShowtime().showDate != null && detail.getShowtime().showTime != null) {
+        if (detail.getShowtime() != null) {
             tvShowtime.setText(detail.getShowtime().showDate + " lúc " + detail.getShowtime().showTime);
             tvRoomName.setText("Phòng: " + detail.getShowtime().roomName);
         } else {
-             tvShowtime.setText("Suất chiếu: N/A");
-             tvRoomName.setText("Phòng: N/A");
+            tvShowtime.setText("Suất chiếu: N/A");
+            tvRoomName.setText("Phòng: N/A");
         }
 
         tvSeats.setText("Ghế: " + (detail.getSeats() != null ? String.join(", ", detail.getSeats()) : "N/A"));
@@ -255,11 +290,9 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         tvPaymentMethod.setText("Thanh toán qua " + detail.getPaymentMethod());
         tvOrderId.setText("Mã đơn hàng: #" + detail.getOrderId());
 
-        // Set payment status color and handle QR code visibility
         if ("Completed".equals(detail.getStatus())) {
             tvPaymentStatus.setText("Đã thanh toán");
             tvPaymentStatus.setTextColor(Color.parseColor("#4CAF50"));
-            // If QR code is available, load it
             if (detail.getQrCode() != null && !detail.getQrCode().isEmpty()) {
                 Glide.with(this).load(detail.getQrCode()).into(ivQrCode);
                 ivQrCode.setVisibility(View.VISIBLE);
@@ -267,19 +300,14 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         } else if ("Pending".equals(detail.getStatus())) {
             tvPaymentStatus.setText("Chưa thanh toán");
             tvPaymentStatus.setTextColor(Color.parseColor("#F44336"));
-            ivQrCode.setVisibility(View.GONE); // Hide QR code for pending orders
+            ivQrCode.setVisibility(View.GONE);
         } else {
-            if (detail.getPayment() != null) {
-                tvPaymentStatus.setText(detail.getPayment().paymentStatus);
-            } else {
-                tvPaymentStatus.setText("N/A");
-            }
+            tvPaymentStatus.setText(detail.getPayment() != null ? detail.getPayment().paymentStatus : "N/A");
             tvPaymentStatus.setTextColor(Color.WHITE);
             ivQrCode.setVisibility(View.GONE);
         }
 
         builder.setPositiveButton("Đóng", (dialog, which) -> dialog.dismiss());
-
         AlertDialog dialog = builder.create();
         dialog.show();
     }

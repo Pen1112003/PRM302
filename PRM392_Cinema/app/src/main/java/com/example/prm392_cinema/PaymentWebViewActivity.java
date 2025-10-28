@@ -1,57 +1,64 @@
 package com.example.prm392_cinema;
 
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
-import android.webkit.WebSettings;
+import android.util.Log;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 public class PaymentWebViewActivity extends AppCompatActivity {
 
-    private static final String DEEP_LINK_SCHEME = "demozpdk";
-    private String transactionId;
+    private WebView paymentWebView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_payment_web_view);
 
-        WebView webView = findViewById(R.id.payment_webview);
-        WebSettings webSettings = webView.getSettings();
-        webSettings.setJavaScriptEnabled(true);
+        paymentWebView = findViewById(R.id.payment_webview);
+        paymentWebView.getSettings().setJavaScriptEnabled(true);
 
-        String paymentUrl = getIntent().getStringExtra("payment_url");
-        transactionId = getIntent().getStringExtra("transactionId");
-
-        webView.setWebViewClient(new WebViewClient() {
+        // Important: Intercept URL changes to handle payment completion
+        paymentWebView.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, String url) {
-                if (url == null) {
-                    return false;
-                }
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                String url = request.getUrl().toString();
+                Log.d("PaymentWebView", "URL loading: " + url);
 
-                Uri uri = Uri.parse(url);
-                if (DEEP_LINK_SCHEME.equals(uri.getScheme()) || "localhost".equals(uri.getHost())) {
-                    navigateToSuccessScreen();
-                    return true;
+                // Check for the specific return URL scheme
+                if (url.startsWith("demozpdk://app")) {
+                    // Payment is complete, handle the deep link
+                    Intent intent = new Intent(Intent.ACTION_VIEW, request.getUrl());
+                    startActivity(intent);
+                    finish(); // Close the WebView
+                    return true; // We've handled the URL
                 }
-                
-                return super.shouldOverrideUrlLoading(view, url);
+                return super.shouldOverrideUrlLoading(view, request); // Let the WebView handle other URLs
             }
         });
 
-        if (paymentUrl != null) {
-            webView.loadUrl(paymentUrl);
+        // Load the initial payment URL from the intent
+        String paymentUrl = getIntent().getStringExtra("payment_url");
+        if (paymentUrl != null && !paymentUrl.isEmpty()) {
+            Log.d("PaymentWebView", "Loading initial payment URL: " + paymentUrl);
+            paymentWebView.loadUrl(paymentUrl);
+        } else {
+            Log.e("PaymentWebView", "Payment URL is null or empty");
+            Toast.makeText(this, "Không có URL thanh toán.", Toast.LENGTH_SHORT).show();
+            finish();
         }
     }
 
-    private void navigateToSuccessScreen() {
-        Intent intent = new Intent(PaymentWebViewActivity.this, PaymentNotification.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra("transactionId", transactionId);
-        startActivity(intent);
-        finish();
+    @Override
+    public void onBackPressed() {
+        // When the user manually presses the back button, treat it as a cancellation.
+        Intent returnIntent = new Intent();
+        setResult(RESULT_CANCELED, returnIntent);
+        Log.d("PaymentWebView", "Back pressed, setting result to CANCELED.");
+        super.onBackPressed();
     }
 }
