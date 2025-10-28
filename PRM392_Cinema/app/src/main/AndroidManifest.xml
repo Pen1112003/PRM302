@@ -46,6 +46,9 @@
             android:name=".PaymentNotification"
             android:exported="true" />
         <activity
+            android:name=".PaymentWebViewActivity" 
+            android:exported="false" />
+        <activity
             android:name=".OrderPaymentActivity"
             android:launchMode="singleTask"
             android:exported="true">

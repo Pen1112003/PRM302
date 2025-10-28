@@ -118,6 +118,16 @@ public class SeatAdapter extends RecyclerView.Adapter<SeatAdapter.SeatViewHolder
         return selectedSeats;
     }
 
+    public List<String> getSelectedSeatNames() {
+        List<String> selectedSeatNames = new ArrayList<>();
+        for (Seat seat : seatList) {
+            if (seatSelectionMap.containsKey(seat.getSeatId()) && seatSelectionMap.get(seat.getSeatId())) {
+                selectedSeatNames.add(seat.getName());
+            }
+        }
+        return selectedSeatNames;
+    }
+
     @Override
     public int getItemCount() {
         return seatList.size();

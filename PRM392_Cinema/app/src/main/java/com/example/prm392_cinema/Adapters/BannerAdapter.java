@@ -12,10 +12,10 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.prm392_cinema.Models.Movie;
 import com.example.prm392_cinema.MovieDetailActivity;
 import com.example.prm392_cinema.R;
-import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
@@ -42,15 +42,16 @@ public class BannerAdapter extends RecyclerView.Adapter<BannerAdapter.BannerView
         holder.bannerTitleTextView.setText(movie.getTitle());
 
         String posterUrl = movie.getPoster();
-        Log.d("BannerAdapter", "Loading banner for " + movie.getTitle() + ": " + posterUrl);
+        Log.d("BannerAdapter", "Loading banner with Glide for " + movie.getTitle() + ": " + posterUrl);
 
         if (posterUrl != null && !posterUrl.isEmpty()) {
-            Picasso.get()
+            Glide.with(context)
                     .load(posterUrl)
                     .placeholder(R.drawable.conan_movie)
                     .error(R.drawable.conan_movie)
                     .into(holder.bannerImageView);
         } else {
+            Glide.with(context).clear(holder.bannerImageView);
             holder.bannerImageView.setImageResource(R.drawable.conan_movie);
         }
 

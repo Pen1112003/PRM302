@@ -1,14 +1,13 @@
 package com.example.prm392_cinema;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.auth0.android.jwt.Claim;
@@ -24,11 +23,13 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class LoginActivity extends AppCompatActivity {
+    public static final String SHARED_PREFS = "sharedPrefs";
+    public static final String USER_ID = "userId";
+    public static final String JWT_TOKEN = "jwtToken";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_login);
 
         Button loginBtn = findViewById(R.id.btnLogin);
@@ -61,31 +62,37 @@ public class LoginActivity extends AppCompatActivity {
         call.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
-                if (response.isSuccessful()) {
+                if (response.isSuccessful() && response.body() != null) {
                     String token = response.body();
                     AuthStore.jwtToken = token;
 
-                    // Decode the JWT to get userId
                     try {
                         JWT jwt = new JWT(token);
-                        // The claim name for user ID in ASP.NET Core Identity is typically this long URI
                         Claim userIdClaim = jwt.getClaim("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-                        String userIdString = userIdClaim.asString();
-                        if (userIdString != null) {
-                            AuthStore.userId = Integer.parseInt(userIdString);
-                            Log.d("LoginActivity", "Login successful. Token saved. UserId: " + AuthStore.userId);
+                        String userId = userIdClaim.asString();
+
+                        if (userId != null && !userId.isEmpty()) {
+                            AuthStore.userId = userId;
+
+                            saveAuthData(userId, token);
+
+                            Log.d("LoginActivity", "Login successful. UserId: " + userId);
+
+                            Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
+
+                            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
+                            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+                            startActivity(intent);
+                            finish();
+
                         } else {
-                            Log.e("LoginActivity", "UserId claim is null in JWT.");
+                            Log.e("LoginActivity", "UserId claim is null or empty in JWT.");
+                            Toast.makeText(LoginActivity.this, "Lỗi: Không tìm thấy User ID trong token.", Toast.LENGTH_SHORT).show();
                         }
                     } catch (Exception e){
                         Log.e("LoginActivity", "JWT Decode Error: " + e.getMessage());
+                        Toast.makeText(LoginActivity.this, "Lỗi giải mã token.", Toast.LENGTH_SHORT).show();
                     }
-
-                    Toast.makeText(LoginActivity.this, "Đăng nhập thành công!", Toast.LENGTH_SHORT).show();
-
-                    Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-                    startActivity(intent);
-                    finish();
                 } else {
                     String errorMsg = "Email hoặc mật khẩu không đúng.";
                     try {
@@ -105,5 +112,13 @@ public class LoginActivity extends AppCompatActivity {
                 Toast.makeText(LoginActivity.this, "Lỗi kết nối. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void saveAuthData(String userId, String token) {
+        SharedPreferences sharedPreferences = getSharedPreferences(SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(USER_ID, userId);
+        editor.putString(JWT_TOKEN, token);
+        editor.apply();
     }
 }
