@@ -191,6 +191,7 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
                                     Date showtimeDate = dateTimeFormat.parse(showtimeString);
                                     if (!showtimeDate.before(currentTime)) {
                                         orderList.add(order);
+                                        schedulePaymentReminder(order);
                                     }
                                 } catch (ParseException e) {
                                     Log.e("HistoryOrder", "Error parsing showtime for pending order: " + order.getOrderId(), e);
@@ -221,9 +222,78 @@ public class HistoryOrder extends AppCompatActivity implements OrderAdapter.OnIt
         });
     }
 
-    private void scheduleNotification(BookingService.BookingDetailAllDTO order) {
-        // ... (schedule logic remains the same)
+    private void schedulePaymentReminder(BookingService.BookingDetailAllDTO order) {
+        try {
+            String showtimeString = order.getShowtime();
+            Date showtimeDate = dateTimeFormat.parse(showtimeString);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(showtimeDate);
+            calendar.add(Calendar.HOUR_OF_DAY, -2);
+            long notificationTime = calendar.getTimeInMillis();
+
+            if (notificationTime > System.currentTimeMillis()) {
+                Intent intent = new Intent(this, NotificationReceiver.class);
+                intent.putExtra("TITTLE", "Nhắc nhở thanh toán");
+                String message = "Đơn hàng phim " + order.getMovieTitle() + " sắp hết hạn. Thanh toán ngay!";
+                intent.putExtra("MESSAGE", message);
+                intent.putExtra("NOTIFICATION_ID", order.getOrderId());
+                intent.putExtra("MOVIE_TITLE", order.getMovieTitle());
+                intent.putExtra("SHOW_TIME", showtimeString);
+
+
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(this, order.getOrderId(), intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    Log.w("HistoryOrder", "Cannot schedule exact alarm for payment reminder.");
+                    return;
+                }
+
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notificationTime, pendingIntent);
+            }
+        } catch (ParseException e) {
+            Log.e("HistoryOrder", "Error parsing showtime for scheduling payment reminder", e);
+        }
     }
+
+
+    private void scheduleNotification(BookingService.BookingDetailAllDTO order) {
+        try {
+            String showtimeString = order.getShowtime();
+            Date showtimeDate = dateTimeFormat.parse(showtimeString);
+
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTime(showtimeDate);
+            calendar.add(Calendar.HOUR_OF_DAY, -1);
+            long notificationTime = calendar.getTimeInMillis();
+
+            if (notificationTime > System.currentTimeMillis()) {
+                Intent intent = new Intent(this, NotificationReceiver.class);
+                intent.putExtra("TITTLE", "Sắp đến giờ chiếu phim");
+                String message = "Phim " + order.getMovieTitle() + " sẽ bắt đầu trong 1 tiếng nữa.";
+                intent.putExtra("MESSAGE", message);
+                int notificationId = order.getOrderId() + 10000; // Offset to avoid collision
+                intent.putExtra("NOTIFICATION_ID", notificationId);
+                intent.putExtra("MOVIE_TITLE", order.getMovieTitle());
+                intent.putExtra("SHOW_TIME", showtimeString);
+
+
+                PendingIntent pendingIntent = PendingIntent.getBroadcast(this, notificationId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+                AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarmManager.canScheduleExactAlarms()) {
+                    Log.w("HistoryOrder", "Cannot schedule exact alarm for showtime reminder.");
+                    return;
+                }
+
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, notificationTime, pendingIntent);
+            }
+        } catch (ParseException e) {
+            Log.e("HistoryOrder", "Error parsing showtime for scheduling notification", e);
+        }
+    }
+
 
     @Override
     public void onItemClick(int orderId) {
