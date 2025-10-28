@@ -20,12 +20,22 @@ public interface BookingService {
     @POST("/api/Booking/PaymentVNPAY") 
     Call<String> getPaymentUrl(@Query("transactionId") String transactionId);
 
-    // Corrected: Removed the status parameter to fetch all orders for the user
     @GET("/api/Booking/search") 
     Call<List<BookingDetailAllDTO>> searchTickets(@Query("userId") String userId);
 
     @GET("/api/Booking/detail/{orderId}")
     Call<BookingDetailItemDTO> getBookingDetailById(@Path("orderId") int orderId);
+
+    @PUT("/api/payment/update-order-status")
+    Call<Void> updateOrderStatus(@Body UpdateOrderStatusDto dto);
+
+    public class UpdateOrderStatusDto {
+        public String transactionId;
+
+        public UpdateOrderStatusDto(String transactionId) {
+            this.transactionId = transactionId;
+        }
+    }
 
     public class CreateBookingDto {
         public int showtimeId;
@@ -63,7 +73,6 @@ public interface BookingService {
         public int bookingId;
     }
 
-    // Old DTOs - keep for compatibility if other parts of app use them or delete if not used
     @GET("/api/Booking/{bookingId}")
     Call<ResDTO> getBookingDetail(@Path("bookingId") String bookingId);
 
@@ -86,7 +95,6 @@ public interface BookingService {
         }
     }
 
-    // DTO for /api/Booking/search - showtime and paymentStatus are strings
     public class BookingDetailAllDTO {
         public int orderId;
         public String customerName;
@@ -94,7 +102,7 @@ public interface BookingService {
         public String email;
         public String movieTitle;
         public int movieId;
-        public String showtime; // Changed to String for search API
+        public String showtime;
         public String roomName;
         public List<String> seats;
         public List<Integer> productIds;
@@ -104,7 +112,7 @@ public interface BookingService {
         public int discountId;
         public String status;
         public String paymentMethod;
-        public String paymentStatus; // Changed to String for search API
+        public String paymentStatus;
         public String userId;
         public String description;
         public String director;
@@ -116,7 +124,6 @@ public interface BookingService {
         public String movieStatus;
         public int genreId;
 
-        // Getters
         public int getOrderId() { return orderId; }
         public String getCustomerName() { return customerName; }
         public String getPhoneNumber() { return phoneNumber; }
@@ -146,7 +153,6 @@ public interface BookingService {
         public int getGenreId() { return genreId; }
     }
 
-    // DTO for /api/Booking/detail/{orderId} - showtime and payment are objects
     public class BookingDetailItemDTO {
         public int orderId;
         public String customerName;
@@ -154,14 +160,13 @@ public interface BookingService {
         public String email;
         public String movieTitle;
         public int movieId;
-        public ShowtimeDetailInItem showtime; // Object for detail API
+        public ShowtimeDetailInItem showtime;
         public String roomName;
         public List<String> seats;
         public double ticketPrice;
         public double totalAmount;
         public String status;
         public String paymentMethod;
-        // Removed direct paymentStatus string as it's nested under payment object for detail API
         public String orderDate;
         public String qrCode;
         public OrderInItem order;
@@ -174,11 +179,10 @@ public interface BookingService {
         public String poster;
         public String movieStatus;
         public int genreId;
-        public PaymentDetailInItem payment; // Object for detail API
+        public PaymentDetailInItem payment;
         public List<Integer> productIds;
         public List<Integer> quantity;
 
-        // Getters for all fields
         public int getOrderId() { return orderId; }
         public String getCustomerName() { return customerName; }
         public String getPhoneNumber() { return phoneNumber; }
@@ -192,7 +196,6 @@ public interface BookingService {
         public double getTotalAmount() { return totalAmount; }
         public String getStatus() { return status; }
         public String getPaymentMethod() { return paymentMethod; }
-        // No direct getPaymentStatus() as it's nested
         public String getOrderDate() { return orderDate; }
         public String getQrCode() { return qrCode; }
         public OrderInItem getOrder() { return order; }
@@ -227,7 +230,7 @@ public interface BookingService {
         public String orderDate;
         public double totalAmount;
         public String status;
-        public Integer discountId; 
+        public Integer discountId;
         public List<TicketInOrderInItem> tickets;
         public List<PaymentInOrderInItem> payments;
         public int movieId;
@@ -262,12 +265,10 @@ public interface BookingService {
         public String paymentStatus;
     }
 
-    // Existing DTOs (adjusted `searchTickets` to return List<BookingDetailAllDTO>)
     public class ResAllDTO {
         public boolean success;
         public List<BookingDetailAllDTO> result;
 
-        // Getters
         public boolean isSuccess() { return success; }
         public List<BookingDetailAllDTO> getResult() { return result; }
     }

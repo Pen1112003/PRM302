@@ -1,6 +1,7 @@
 package com.example.prm392_cinema;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
@@ -22,26 +23,24 @@ public class PaymentWebViewActivity extends AppCompatActivity {
         paymentWebView = findViewById(R.id.payment_webview);
         paymentWebView.getSettings().setJavaScriptEnabled(true);
 
-        // Important: Intercept URL changes to handle payment completion
         paymentWebView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
                 Log.d("PaymentWebView", "URL loading: " + url);
 
-                // Check for the specific return URL scheme
                 if (url.startsWith("demozpdk://app")) {
-                    // Payment is complete, handle the deep link
-                    Intent intent = new Intent(Intent.ACTION_VIEW, request.getUrl());
-                    startActivity(intent);
+                    // Payment is complete, return the result URL to the calling activity.
+                    Intent returnIntent = new Intent();
+                    returnIntent.setData(Uri.parse(url));
+                    setResult(RESULT_OK, returnIntent);
                     finish(); // Close the WebView
                     return true; // We've handled the URL
                 }
-                return super.shouldOverrideUrlLoading(view, request); // Let the WebView handle other URLs
+                return super.shouldOverrideUrlLoading(view, request);
             }
         });
 
-        // Load the initial payment URL from the intent
         String paymentUrl = getIntent().getStringExtra("payment_url");
         if (paymentUrl != null && !paymentUrl.isEmpty()) {
             Log.d("PaymentWebView", "Loading initial payment URL: " + paymentUrl);
@@ -55,7 +54,6 @@ public class PaymentWebViewActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // When the user manually presses the back button, treat it as a cancellation.
         Intent returnIntent = new Intent();
         setResult(RESULT_CANCELED, returnIntent);
         Log.d("PaymentWebView", "Back pressed, setting result to CANCELED.");

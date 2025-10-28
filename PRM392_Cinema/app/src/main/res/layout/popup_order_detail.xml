@@ -120,7 +120,16 @@
                 android:layout_height="150dp"
                 android:layout_gravity="center_horizontal"
                 android:layout_marginTop="16dp"
-                android:visibility="gone" /> <!-- Initially hidden -->
+                android:visibility="gone" />
+
+            <!-- Pay Now Button -->
+            <Button
+                android:id="@+id/btn_pay_now"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Thanh toán ngay"
+                android:visibility="gone" /> <!-- Hidden by default -->
 
         </LinearLayout>
 
