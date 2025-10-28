@@ -1,211 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:flexbox="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#19203e"
-    android:fillViewport="true"
-    android:fitsSystemWindows="true"
-    android:padding="16dp"
     tools:context=".OrderPaymentActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <LinearLayout
-            android:id="@+id/header"
+        <ImageView
+            android:id="@+id/movie_poster"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="fill_horizontal|center"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_height="200dp"
+            android:scaleType="centerCrop" />
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1">
-                <ImageView
-                    android:id="@+id/backIcon"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    app:srcCompat="@drawable/arrow_back" />
-            </LinearLayout>
-
-            <ImageView
-                android:id="@+id/logo"
-                android:layout_width="100dp"
-                android:layout_height="54dp"
-                android:layout_gravity="center"
-                app:srcCompat="@drawable/logo" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:gravity="end"
-                android:layout_weight="1">
-
-                <ImageView
-                    android:id="@+id/btnHistory"
-                    android:layout_width="24dp"
-                    android:src="@drawable/history"
-                    android:layout_marginEnd="12dp"
-                    android:layout_height="24dp"/>
-
-                <ImageView
-                    android:id="@+id/btnSignOut"
-                    android:layout_width="24dp"
-                    android:src="@drawable/sign_out"
-                    android:layout_height="24dp"/>
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Tiêu đề -->
         <TextView
-            android:id="@+id/txt"
+            android:id="@+id/movie_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="16dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Thông tin đơn hàng"
-            android:textColor="#f3ea28"
+            android:layout_marginTop="16dp"
+            android:textColor="@android:color/white"
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <!-- Tên người dùng -->
         <TextView
-            android:id="@+id/txtUserName"
+            android:id="@+id/showtime_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Người đặt vé: user"
-            android:textColor="#f3ea28"
-            android:textSize="20sp" />
+            android:layout_marginTop="8dp"
+            android:textColor="@android:color/white" />
 
-        <!-- Tên phòng -->
         <TextView
-            android:id="@+id/txtHallName"
+            android:id="@+id/room_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Phòng: Phòng B"
-            android:textColor="#fff"
-            android:textSize="18sp" />
+            android:textColor="@android:color/white" />
 
-        <!-- Tên phim -->
         <TextView
-            android:id="@+id/txtMovieName"
+            android:id="@+id/seat_info"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Phim: Cuộc Phiêu Lưu Vĩ Đại"
-            android:textColor="#fff"
-            android:textSize="18sp" />
+            android:textColor="@android:color/white" />
 
-        <!-- Ngày chiếu -->
         <TextView
-            android:id="@+id/txtShowDate"
+            android:id="@+id/customer_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Ngày chiếu: 21/11/2024 16:24"
-            android:textColor="#fff"
-            android:textSize="18sp" />
-
-        <!-- Ngày đặt -->
-
+            android:layout_marginTop="16dp"
+            android:textColor="@android:color/white" />
 
         <TextView
-            android:id="@+id/txtBookingDate"
+            android:id="@+id/phone_number"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="Ngày đặt: 02/11/2024 21:50"
-            android:textColor="#fff"
-            android:textSize="18sp" />
+            android:textColor="@android:color/white" />
 
         <TextView
-            android:id="@+id/txtSeatDetails"
+            android:id="@+id/payment_method"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:layout_marginTop="12dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Ghế đã chọn:"
-            android:textColor="#f3ea28"
-            android:textSize="20sp" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/seatRecyclerViewOrder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"/>
+            android:layout_marginTop="16dp"
+            android:textColor="@android:color/white" />
 
         <TextView
-            android:id="@+id/txtFoodDetails"
+            android:id="@+id/total_amount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Bắp và nước:"
-            android:textColor="#f3ea28"
-            android:textSize="20sp" />
-
-        <!-- Danh sách thực phẩm -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/fabRecyclerViewOrder"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Tình trạng thanh toán -->
-        <TextView
-            android:id="@+id/nonFAB"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Không có" />
-
-        <TextView
-            android:id="@+id/status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:textColor="#f3ea28"
-            android:fontFamily="sans-serif-medium"
-            android:text="Tình trạng: Chưa thanh toán"
-            android:textSize="20sp" />
-
-        <!-- Tổng cộng -->
-        <TextView
-            android:id="@+id/totalPrice"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:textColor="#f3ea28"
-            android:layout_marginBottom="8dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="Tổng cộng: 100.000đ"
-            android:textSize="20sp" />
+            android:layout_marginTop="8dp"
+            android:textColor="@android:color/white"
+            android:textSize="20sp"
+            android:textStyle="bold" />
 
         <Button
-            android:id="@+id/buttonThanhToan"
+            android:id="@+id/confirm_payment_button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:backgroundTint="#f3ea28"
-            android:text="Thanh toán ngay"
-            android:textColor="#663399"
-            android:textStyle="bold"
-            app:cornerRadius="8dp" />
-
+            android:text="Xác nhận thanh toán" />
 
     </LinearLayout>
 </ScrollView>

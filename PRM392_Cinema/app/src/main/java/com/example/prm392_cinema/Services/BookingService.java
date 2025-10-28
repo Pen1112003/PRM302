@@ -1,6 +1,7 @@
 package com.example.prm392_cinema.Services;
 
 import com.example.prm392_cinema.Models.Movie;
+
 import java.util.List;
 
 import retrofit2.Call;
@@ -13,42 +14,39 @@ import retrofit2.http.Query;
 
 public interface BookingService {
 
-    @POST("/api/Booking/create-booking")
-    Call<CreateBookingResponseDto> createBooking(@Body CreateBookingDto dto);
+    @POST("/api/Booking/book-ticket")
+    Call<String> createBooking(@Body CreateBookingDto dto);
 
-    // Lớp DTO để gửi thông tin đặt vé, bao gồm cả đồ ăn
+    @POST("/api/Booking/PaymentVNPAY") 
+    Call<String> getPaymentUrl(@Query("transactionId") String transactionId);
+
+    @GET("/api/Ticket/search-tickets")
+    Call<ResAllDTO> searchTickets(@Query("userId") String userId, @Query("status") int status);
+
     public class CreateBookingDto {
-        public int userId;
-        public int showTimeId;
-        public List<Integer> listSeatId;
+        public int showtimeId;
+        public String userId;
+        public List<Integer> seatIds;
+        public List<Integer> productIds;
+        public List<Integer> quantity;
         public double totalPrice;
-        public List<ProductOrderDto> products; // Thêm danh sách sản phẩm
+        public double ticketPrice;
+        public int discountId;
+        public String paymentMethod;
 
-        public CreateBookingDto(int userId, int showTimeId, List<Integer> listSeatId, double totalPrice) {
+        public CreateBookingDto(int showtimeId, String userId, List<Integer> seatIds, List<Integer> productIds, List<Integer> quantity, double totalPrice, double ticketPrice, int discountId, String paymentMethod) {
+            this.showtimeId = showtimeId;
             this.userId = userId;
-            this.showTimeId = showTimeId;
-            this.listSeatId = listSeatId;
-            this.totalPrice = totalPrice;
-        }
-
-        // Setter cho danh sách sản phẩm
-        public void setProducts(List<ProductOrderDto> products) {
-            this.products = products;
-        }
-    }
-
-    // Lớp DTO cho mỗi sản phẩm trong đơn hàng
-    public class ProductOrderDto {
-        public int productId;
-        public int quantity;
-
-        public ProductOrderDto(int productId, int quantity) {
-            this.productId = productId;
+            this.seatIds = seatIds;
+            this.productIds = productIds;
             this.quantity = quantity;
+            this.totalPrice = totalPrice;
+            this.ticketPrice = ticketPrice;
+            this.discountId = discountId;
+            this.paymentMethod = paymentMethod;
         }
     }
 
-    // Các lớp DTO cho phản hồi (giữ nguyên như cũ)
     public class CreateBookingResponseDto {
         public CreateBookingResponseResultDto result;
     }
@@ -61,7 +59,6 @@ public interface BookingService {
         public int bookingId;
     }
 
-    // Các phương thức và lớp khác giữ nguyên
     @GET("/api/Booking/{bookingId}")
     Call<ResDTO> getBookingDetail(@Path("bookingId") String bookingId);
 

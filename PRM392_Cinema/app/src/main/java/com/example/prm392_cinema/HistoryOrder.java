@@ -1,6 +1,7 @@
 package com.example.prm392_cinema;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -30,7 +31,6 @@ public class HistoryOrder extends AppCompatActivity {
     private OrderAdapter orderAdapter;
     private List<BookingService.BookingDetailAllDTO> orderList;
     private ProgressBar progressBar; // Loading indicator
-    String userId;
     String currentOrderId;
 
     @Override
@@ -42,43 +42,44 @@ public class HistoryOrder extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         recyclerViewOrders.setLayoutManager(new LinearLayoutManager(this));
 
-        userId = AuthStore.userId + "";
         orderList = new ArrayList<>();
         orderAdapter = new OrderAdapter(orderList, this);
         recyclerViewOrders.setAdapter(orderAdapter);
 
-        if (userId != null) {
-            Log.d("callAPI", "userId:" + userId);
-            loadData(userId);
-        }
+        loadUserIdAndFetchData();
 
-        findViewById(R.id.btnSignOut).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                handleSignOut();
-            }
-        });
+        findViewById(R.id.btnSignOut).setOnClickListener(v -> handleSignOut());
 
-        findViewById(R.id.backIcon).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                handleBack();
-            }
-        });
-        (findViewById(R.id.btnHistory)).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                navigateHistory();
-            }
-        });
+        findViewById(R.id.backIcon).setOnClickListener(v -> handleBack());
+        
+        // Hide the history button on the history screen
+        findViewById(R.id.btnHistory).setVisibility(View.GONE);
     }
 
-    private void navigateHistory() {
+    private void loadUserIdAndFetchData() {
+        SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.SHARED_PREFS, MODE_PRIVATE);
+        String userId = sharedPreferences.getString(LoginActivity.USER_ID, null); // Read as String
 
+        if (userId != null && !userId.isEmpty()) {
+            Log.d("HistoryOrder", "UserId found in SharedPreferences: " + userId);
+            loadData(userId);
+        } else {
+            Log.e("HistoryOrder", "User ID not found in SharedPreferences. Cannot load data.");
+            Toast.makeText(this, "Bạn cần đăng nhập để xem lịch sử.", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void handleSignOut() {
-        AuthStore.userId = 0;
+        // Clear SharedPreferences
+        SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
+
+        // Also clear the static store
+        AuthStore.userId = null;
+        AuthStore.jwtToken = null;
+
         Intent intent = new Intent(HistoryOrder.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -88,37 +89,40 @@ public class HistoryOrder extends AppCompatActivity {
         finish(); // Đóng Activity hiện tại và quay lại Activity trước đó
     }
 
-    private void loadData(String userId) {
+    private void loadData(String userId) { // Accept String userId
         BookingService apiService = ApiClient.getRetrofitInstance().create(BookingService.class);
 
         // Show the loading indicator
         progressBar.setVisibility(View.VISIBLE);
 
-        Call<BookingService.ResAllDTO> call = apiService.getBookings(userId);
+        Call<BookingService.ResAllDTO> call = apiService.searchTickets(userId, 1);
         call.enqueue(new Callback<BookingService.ResAllDTO>() {
             @Override
             public void onResponse(Call<BookingService.ResAllDTO> call, Response<BookingService.ResAllDTO> response) {
                 progressBar.setVisibility(View.GONE); // Hide loading indicator
-                Log.d("callAPI", "Done");
-                if (response.isSuccessful() && response.body() != null) {
+                if (response.isSuccessful() && response.body() != null && response.body().result != null) {
+                    Log.d("HistoryOrder", "API call successful. Found " + response.body().result.size() + " orders.");
                     orderList.clear();
                     orderList.addAll(response.body().result);
                     orderAdapter.notifyDataSetChanged();
                 } else {
-                    // Handle the case where result is null or response is not successful
-                    Log.d("callAPI", "Response unsuccessful or body is null");
+                    String errorBody = "";
+                    try {
+                        if (response.errorBody() != null) {
+                            errorBody = response.errorBody().string();
+                        }
+                    } catch (Exception e) { /* ignore */ }
+                    Log.e("HistoryOrder", "API Response unsuccessful or body is null. Code: " + response.code() + " Body: " + errorBody);
+                    Toast.makeText(HistoryOrder.this, "Không có lịch sử đặt vé.", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
             public void onFailure(Call<BookingService.ResAllDTO> call, Throwable t) {
                 progressBar.setVisibility(View.GONE); // Hide loading indicator
-                Log.d("callAPI", t.getMessage());
-                // Show a user-friendly error message
-                Toast.makeText(HistoryOrder.this, "Lỗi khi tải dữ liệu", Toast.LENGTH_SHORT).show();
+                Log.e("HistoryOrder", "API call failed: " + t.getMessage(), t);
+                Toast.makeText(HistoryOrder.this, "Lỗi khi tải dữ liệu. Vui lòng kiểm tra kết nối.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 }
-
-

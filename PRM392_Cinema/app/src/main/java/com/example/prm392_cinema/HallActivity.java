@@ -1,8 +1,8 @@
 package com.example.prm392_cinema;
 
-import android.annotation.SuppressLint;
-import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
@@ -11,10 +11,12 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -25,13 +27,18 @@ import com.example.prm392_cinema.Adapters.SeatAdapter;
 import com.example.prm392_cinema.Models.Product;
 import com.example.prm392_cinema.Models.Seat;
 import com.example.prm392_cinema.Models.SeatType;
+import com.example.prm392_cinema.model.ShowtimeDetail;
 import com.example.prm392_cinema.Services.ApiClient;
 import com.example.prm392_cinema.Services.BookingService;
 import com.example.prm392_cinema.Services.MovieService;
 import com.example.prm392_cinema.Services.ProductService;
 import com.example.prm392_cinema.Services.SeatService;
-import com.example.prm392_cinema.model.ShowtimeDetail;
+import com.example.prm392_cinema.Stores.AuthStore;
+import com.example.prm392_cinema.R;
 
+import com.google.android.material.appbar.MaterialToolbar;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -44,65 +51,104 @@ import retrofit2.Callback;
 import retrofit2.Response;
 
 public class HallActivity extends AppCompatActivity {
-    private SeatAdapter seatAdapter;
-    private RecyclerView seatRecyclerView;
-    private LinearLayout seatTypeContainer, orderSummaryLayout;
-    private TextView selectedFoodTextView, totalPriceTextView;
     private int showtimeId;
     private int movieId;
+    private String userId;
+    private SeatAdapter seatAdapter;
+    private RecyclerView seatRecyclerView;
+    private LinearLayout seatTypeContainer;
+    private LinearLayout orderSummaryLayout;
+    private TextView selectedSeatsTextView;
+    private TextView selectedFoodTextView;
+    private TextView totalPriceTextView;
+
     private List<Product> selectedProducts = new ArrayList<>();
 
-    @SuppressLint("SetTextI18n")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_hall);
 
-        seatTypeContainer = findViewById(R.id.seatTypeContainer);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
+
+        ImageView userIcon = findViewById(R.id.user_icon);
+        userIcon.setOnClickListener(v -> showUserDialog());
+
+        userId = AuthStore.userId;
+
+        showtimeId = getIntent().getIntExtra("showtimeId", -1);
+        if (showtimeId == -1) {
+            Toast.makeText(this, "Showtime ID is missing.", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
+
+        initializeViews();
+        fetchShowtimeDetails(showtimeId);
+        getSeatTypes();
+    }
+
+    private void initializeViews() {
         seatRecyclerView = findViewById(R.id.seatRecyclerView);
+        seatTypeContainer = findViewById(R.id.seatTypeContainer);
         orderSummaryLayout = findViewById(R.id.orderSummaryLayout);
+        selectedSeatsTextView = findViewById(R.id.selectedSeatsTextView);
         selectedFoodTextView = findViewById(R.id.selectedFoodTextView);
         totalPriceTextView = findViewById(R.id.totalPriceTextView);
 
-        Intent intent = getIntent();
-        if (intent == null || !intent.hasExtra("showtimeId")) {
-            Toast.makeText(this, "Lỗi: Không tìm thấy ID suất chiếu.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
-
-        showtimeId = intent.getIntExtra("showtimeId", 0);
-        if (showtimeId == 0) {
-            Toast.makeText(this, "Lỗi: ID suất chiếu không hợp lệ.", Toast.LENGTH_LONG).show();
-            finish();
-            return;
-        }
-
-        fetchShowtimeDetails(showtimeId);
-        getSeatTypes();
-
         findViewById(R.id.orderButton).setOnClickListener(v -> createBooking());
-        findViewById(R.id.btnChooseFood).setOnClickListener(v -> showProductDialog());
-        findViewById(R.id.btnSignOut).setOnClickListener(v -> handleSignOut());
-        findViewById(R.id.backIcon).setOnClickListener(v -> handleBack());
-        (findViewById(R.id.btnHistory)).setOnClickListener(v -> navigateHistory());
+        findViewById(R.id.foodButton).setOnClickListener(v -> showProductDialog());
+    }
+
+    private void showUserDialog() {
+        if (userId == null || userId.isEmpty()) {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+        } else {
+            new AlertDialog.Builder(this)
+                    .setTitle("Tài khoản")
+                    .setItems(new CharSequence[]{"Lịch sử đặt vé", "Đăng xuất"}, (dialog, which) -> {
+                        switch (which) {
+                            case 0:
+                                navigateHistory();
+                                break;
+                            case 1:
+                                handleSignOut();
+                                break;
+                        }
+                    })
+                    .show();
+        }
     }
 
     private void updateOrderSummary() {
-        double seatPrice = (seatAdapter != null) ? seatAdapter.getTotalPrice() : 0;
-        double productPrice = selectedProducts.stream()
-                .mapToDouble(p -> p.getPrice() * p.getSelectedQuantity())
-                .sum();
-        double totalPrice = seatPrice + productPrice;
+        List<String> selectedSeatNames = seatAdapter != null ? seatAdapter.getSelectedSeatNames() : new ArrayList<>();
+        double ticketPrice = seatAdapter != null ? seatAdapter.getTotalPrice() : 0;
+        double productPrice = selectedProducts.stream().mapToDouble(p -> p.getPrice() * p.getSelectedQuantity()).sum();
+        double totalPrice = ticketPrice + productPrice;
 
-        if (totalPrice > 0) {
+        if (!selectedSeatNames.isEmpty() || !selectedProducts.isEmpty()) {
             orderSummaryLayout.setVisibility(View.VISIBLE);
 
-            StringBuilder foodSummary = new StringBuilder();
-            for (Product p : selectedProducts) {
-                foodSummary.append("- ").append(p.getSelectedQuantity()).append("x ").append(p.getProductName()).append("\n");
+            if (selectedSeatNames.isEmpty()) {
+                selectedSeatsTextView.setVisibility(View.GONE);
+            } else {
+                selectedSeatsTextView.setVisibility(View.VISIBLE);
+                selectedSeatsTextView.setText("Ghế: " + String.join(", ", selectedSeatNames));
             }
-            selectedFoodTextView.setText(foodSummary.toString().trim());
+
+            if (selectedProducts.isEmpty()) {
+                selectedFoodTextView.setVisibility(View.GONE);
+            } else {
+                selectedFoodTextView.setVisibility(View.VISIBLE);
+                StringBuilder foodSummary = new StringBuilder("Bắp nước:\n");
+                for (Product p : selectedProducts) {
+                    foodSummary.append("- ").append(p.getSelectedQuantity()).append("x ").append(p.getProductName()).append("\n");
+                }
+                selectedFoodTextView.setText(foodSummary.toString().trim());
+            }
 
             totalPriceTextView.setText(String.format(Locale.US, "Tổng: %,.0f VNĐ", totalPrice));
 
@@ -134,7 +180,7 @@ public class HallActivity extends AppCompatActivity {
                         selectedProducts = productAdapter.getProductList().stream()
                                 .filter(p -> p.getSelectedQuantity() > 0)
                                 .collect(Collectors.toList());
-                        updateOrderSummary(); 
+                        updateOrderSummary();
                         dialog.dismiss();
                     });
 
@@ -271,59 +317,94 @@ public class HallActivity extends AppCompatActivity {
     }
 
     private void createBooking() {
+        if (userId == null){
+            Toast.makeText(this, "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (seatAdapter == null) {
             Toast.makeText(this, "Sơ đồ ghế chưa được tải.", Toast.LENGTH_SHORT).show();
             return;
         }
-        List<Integer> selectedSeats = seatAdapter.getSelectedSeatId();
-        if (selectedSeats.isEmpty() && selectedProducts.isEmpty()) {
+        List<Integer> selectedSeatIds = seatAdapter.getSelectedSeatId();
+        if (selectedSeatIds.isEmpty() && selectedProducts.isEmpty()) {
             Toast.makeText(this, "Cần chọn ít nhất 1 ghế hoặc 1 sản phẩm.", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        double totalProductPrice = selectedProducts.stream().mapToDouble(p -> p.getPrice() * p.getSelectedQuantity()).sum();
-        double totalSeatPrice = (seatAdapter != null) ? seatAdapter.getTotalPrice() : 0;
+        double ticketPrice = (seatAdapter != null) ? seatAdapter.getTotalPrice() : 0;
+        double productPrice = selectedProducts.stream().mapToDouble(p -> p.getPrice() * p.getSelectedQuantity()).sum();
+        double totalPrice = ticketPrice + productPrice;
 
-        BookingService.CreateBookingDto bookingDto = new BookingService.CreateBookingDto(1, showtimeId, selectedSeats, totalSeatPrice + totalProductPrice);
-
-        List<BookingService.ProductOrderDto> productOrders = new ArrayList<>();
+        List<Integer> productIds = new ArrayList<>();
+        List<Integer> quantities = new ArrayList<>();
         for (Product product : selectedProducts) {
-            productOrders.add(new BookingService.ProductOrderDto(product.getProductId(), product.getSelectedQuantity()));
+            productIds.add(product.getProductId());
+            quantities.add(product.getSelectedQuantity());
         }
-        bookingDto.setProducts(productOrders);
+
+        BookingService.CreateBookingDto bookingDto = new BookingService.CreateBookingDto(
+                showtimeId,
+                userId,
+                selectedSeatIds,
+                productIds,
+                quantities,
+                totalPrice,
+                ticketPrice,
+                0, 
+                "VNPay"
+        );
 
         BookingService bookingService = ApiClient.getRetrofitInstance().create(BookingService.class);
-        bookingService.createBooking(bookingDto).enqueue(new Callback<BookingService.CreateBookingResponseDto>() {
+        bookingService.createBooking(bookingDto).enqueue(new Callback<String>() {
             @Override
-            public void onResponse(Call<BookingService.CreateBookingResponseDto> call, Response<BookingService.CreateBookingResponseDto> response) {
+            public void onResponse(Call<String> call, Response<String> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    navigateToPaymentScreen(response.body().result.data.bookingId);
+                    String transactionId = response.body();
+                    navigateToPaymentScreen(transactionId);
                 } else {
-                    Toast.makeText(HallActivity.this, "Đặt vé thất bại.", Toast.LENGTH_SHORT).show();
+                    String errorBodyString = "";
+                    if (response.errorBody() != null) {
+                        try {
+                            errorBodyString = response.errorBody().string();
+                        } catch (IOException e) {
+                            errorBodyString = "Error reading error body.";
+                        }
+                    }
+                    Log.e("CreateBooking", "Booking failed. Code: " + response.code() + " - Body: " + errorBodyString);
+                    Toast.makeText(HallActivity.this, "Đặt vé thất bại. Vui lòng thử lại.", Toast.LENGTH_SHORT).show();
                 }
             }
 
             @Override
-            public void onFailure(Call<BookingService.CreateBookingResponseDto> call, Throwable t) {
+            public void onFailure(Call<String> call, Throwable t) {
+                Log.e("CreateBooking", "API call failed: " + t.getMessage(), t);
                 Toast.makeText(HallActivity.this, "Lỗi mạng khi đặt vé.", Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void navigateToPaymentScreen(int bookingId) {
+    private void navigateToPaymentScreen(String transactionId) {
         Intent intent = new Intent(this, OrderPaymentActivity.class);
-        intent.putExtra("orderId", String.valueOf(bookingId));
+        intent.putExtra("orderId", transactionId);
         startActivity(intent);
     }
 
-    private void handleSignOut() { 
+    private void handleSignOut() {
+        SharedPreferences sharedPreferences = getSharedPreferences(LoginActivity.SHARED_PREFS, MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.clear();
+        editor.apply();
+
+        AuthStore.userId = null;
+        AuthStore.jwtToken = null;
+
         Intent intent = new Intent(HallActivity.this, LoginActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
      }
     private void handleBack() { finish(); }
     private void navigateHistory() {
-        Intent intent = new Intent(HallActivity.this, HistoryOrder.class);
+        Intent intent = new Intent(this, HistoryOrder.class);
         startActivity(intent);
      }
 }

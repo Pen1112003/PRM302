@@ -10,9 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.prm392_cinema.Models.Movie;
 import com.example.prm392_cinema.R;
-import com.squareup.picasso.Picasso;
 
 import java.util.List;
 
@@ -45,19 +45,19 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
         holder.titleTextView.setText(movie.getTitle());
         holder.durationTextView.setText("Thời lượng: " + movie.getDuration() + " phút");
 
-        Log.d("MovieAdapter", "Loading poster for " + movie.getTitle() + ": " + movie.getPoster());
+        Log.d("MovieAdapter", "Loading poster with Glide for " + movie.getTitle() + ": " + movie.getPoster());
 
         if (movie.getPoster() != null && !movie.getPoster().isEmpty()) {
-            Picasso.get()
+            Glide.with(context)
                     .load(movie.getPoster())
                     .placeholder(R.drawable.conan_movie)
                     .error(R.drawable.conan_movie)
                     .into(holder.posterImageView);
         } else {
+            Glide.with(context).clear(holder.posterImageView);
             holder.posterImageView.setImageResource(R.drawable.conan_movie);
         }
 
-        // Set the click listener to the item view
         holder.itemView.setOnClickListener(v -> {
             if (listener != null) {
                 listener.onItemClick(movie);
