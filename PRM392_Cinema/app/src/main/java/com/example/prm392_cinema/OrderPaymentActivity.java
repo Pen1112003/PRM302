@@ -34,19 +34,36 @@ public class OrderPaymentActivity extends AppCompatActivity {
     private Button confirmPaymentButton;
 
     private final ActivityResultLauncher<Intent> paymentLauncher = registerForActivityResult(
-        new ActivityResultContracts.StartActivityForResult(),
-        result -> {
-            Log.d("OrderPaymentActivity", "Received result from payment activity. Result code: " + result.getResultCode());
-            if (result.getResultCode() == RESULT_CANCELED) {
-                Toast.makeText(this, "Thanh toán đã bị hủy.", Toast.LENGTH_LONG).show();
-                
-                // Navigate back to HomeActivity as requested
-                Intent intent = new Intent(OrderPaymentActivity.this, HomeActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                startActivity(intent);
-                finish(); // Close this activity
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                Log.d("OrderPaymentActivity", "Received result from payment activity. Result code: " + result.getResultCode());
+
+                if (result.getResultCode() == RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null && data.getData() != null) {
+                        Uri resultUri = data.getData();
+                        String responseCode = resultUri.getQueryParameter("vnp_ResponseCode");
+                        Log.d("OrderPaymentActivity", "Payment response code: " + responseCode);
+
+                        if ("00".equals(responseCode)) {
+                            // Payment successful, navigate to PaymentNotification
+                            Intent notificationIntent = new Intent(OrderPaymentActivity.this, PaymentNotification.class);
+                            notificationIntent.putExtra("transactionId", transactionId);
+                            startActivity(notificationIntent);
+                            finish(); // Finish this activity
+                        } else {
+                            // Payment failed on the portal
+                            Toast.makeText(this, "Thanh toán thất bại.", Toast.LENGTH_LONG).show();
+                        }
+                    } else {
+                        // Should not happen if RESULT_OK is received
+                        Toast.makeText(this, "Không nhận được kết quả thanh toán.", Toast.LENGTH_LONG).show();
+                    }
+                } else if (result.getResultCode() == RESULT_CANCELED) {
+                    // Payment was cancelled by the user (back press) or failed on the portal
+                    Toast.makeText(this, "Thanh toán đã bị hủy hoặc thất bại.", Toast.LENGTH_LONG).show();
+                }
             }
-        }
     );
 
     @Override
@@ -60,28 +77,6 @@ public class OrderPaymentActivity extends AppCompatActivity {
         fetchTransactionDetails();
 
         confirmPaymentButton.setOnClickListener(v -> handlePayment());
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        setIntent(intent);
-        Uri data = intent.getData();
-        if (data != null && "demozpdk".equals(data.getScheme()) && "app".equals(data.getHost())) {
-            Log.d("OrderPaymentActivity", "Returned from payment via deep link. Forwarding to PaymentNotification.");
-            
-            String responseCode = data.getQueryParameter("vnp_ResponseCode");
-            if ("00".equals(responseCode)) {
-                Log.d("OrderPaymentActivity", "Payment successful according to deep link.");
-                Intent notificationIntent = new Intent(this, PaymentNotification.class);
-                notificationIntent.putExtra("transactionId", transactionId); 
-                startActivity(notificationIntent);
-                finish();
-            } else {
-                Log.d("OrderPaymentActivity", "Payment failed or cancelled on portal. Response code: " + responseCode);
-                Toast.makeText(this, "Giao dịch thất bại hoặc đã bị hủy.", Toast.LENGTH_LONG).show();
-            }
-        }
     }
 
     private void initializeViews() {

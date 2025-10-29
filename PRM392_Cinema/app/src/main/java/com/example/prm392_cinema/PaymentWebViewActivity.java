@@ -29,14 +29,23 @@ public class PaymentWebViewActivity extends AppCompatActivity {
                 String url = request.getUrl().toString();
                 Log.d("PaymentWebView", "URL loading: " + url);
 
-                if (url.startsWith("demozpdk://app")) {
-                    // Payment is complete, return the result URL to the calling activity.
+                // Intercept the return URL from VNPAY, which might be a localhost URL or a deep link
+                if (url.contains("payment-returnURL") || url.startsWith("demozpdk://app")) {
                     Intent returnIntent = new Intent();
-                    returnIntent.setData(Uri.parse(url));
-                    setResult(RESULT_OK, returnIntent);
+                    returnIntent.setData(request.getUrl());
+
+                    String responseCode = request.getUrl().getQueryParameter("vnp_ResponseCode");
+                    if ("00".equals(responseCode)) {
+                        setResult(RESULT_OK, returnIntent);
+                    } else {
+                        // Use RESULT_CANCELED for failure or cancellation on the portal
+                        setResult(RESULT_CANCELED, returnIntent);
+                    }
                     finish(); // Close the WebView
-                    return true; // We've handled the URL
+                    return true; // We've handled the URL, don't load it in WebView
                 }
+                
+                // For other URLs, let the WebView load them
                 return super.shouldOverrideUrlLoading(view, request);
             }
         });
@@ -54,6 +63,7 @@ public class PaymentWebViewActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
+        // User pressed back button, treat as cancellation
         Intent returnIntent = new Intent();
         setResult(RESULT_CANCELED, returnIntent);
         Log.d("PaymentWebView", "Back pressed, setting result to CANCELED.");
